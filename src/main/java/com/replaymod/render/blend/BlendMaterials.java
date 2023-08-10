@@ -32,11 +32,11 @@ public class BlendMaterials {
             Image bufImage = new Image(width, height);
             for (int y = 0; y < height; y++) {
                 for (int x = 0; x < width; x++) {
-                    int a = buffer.get();
-                    int b = buffer.get();
-                    int g = buffer.get();
                     int r = buffer.get();
-                    bufImage.setRGBA(x, y, r, b, g, a);
+                    int g = buffer.get();
+                    int b = buffer.get();
+                    int a = buffer.get();
+                    bufImage.setRGBA(x, y, r, g, b, a);
                 }
             }
 
