@@ -1,20 +1,18 @@
 package com.replaymod.render.mixin;
 
-import net.minecraft.client.util.Window;
+import net.minecraft.client.Minecraft;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
-@Mixin(Window.class)
+@Mixin(Minecraft.class)
 public interface MainWindowAccessor {
-    @Accessor
+    @Accessor("displayWidth")
     int getFramebufferWidth();
-    @Accessor
+    @Accessor("displayWidth")
     void setFramebufferWidth(int value);
-    @Accessor
+    @Accessor("displayHeight")
     int getFramebufferHeight();
-    @Accessor
+    @Accessor("displayHeight")
     void setFramebufferHeight(int value);
-    @Invoker
-    void invokeOnFramebufferSizeChanged(long window, int width, int height);
 }

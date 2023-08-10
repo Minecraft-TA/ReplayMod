@@ -11,19 +11,19 @@
     "NetworkManagerAccessor",
     "MixinClientConnection",
     //#if MC<11500
-    //$$ "SPacketSpawnMobAccessor",
-    //$$ "SPacketSpawnPlayerAccessor",
+    "SPacketSpawnMobAccessor",
+    "SPacketSpawnPlayerAccessor",
     //#endif
     "MixinServerInfo",
     //#if MC>=10800
     "MixinDownloadingPackFinder",
     //#endif
     //#if MC>=11400
-    "MixinMouseHelper",
+    //$$ "MixinMouseHelper",
     //#endif
     //#if MC>=10904
     //#if MC<11400
-    //$$ "MixinPlayerControllerMP",
+    "MixinPlayerControllerMP",
     //#endif
     "MixinWorldClient",
     //#endif
@@ -34,7 +34,7 @@
     "MixinNetHandlerLoginClient",
     "MixinNetHandlerPlayClient",
     //#if MC<11400
-    //$$ "MixinNetworkDispatcher",
+    "MixinNetworkDispatcher",
     //#endif
     "MixinRenderGlobal"
   ],

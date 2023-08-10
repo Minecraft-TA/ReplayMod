@@ -1,9 +1,9 @@
 package com.replaymod.core.mixin;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.network.ClientConnection;
-import net.minecraft.util.crash.CrashReport;
-import net.minecraft.client.render.RenderTickCounter;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.NetworkManager;
+import net.minecraft.crash.CrashReport;
+import net.minecraft.util.Timer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
 import org.spongepowered.asm.mixin.gen.Accessor;
@@ -15,44 +15,44 @@ import java.util.Queue;
 //#endif
 
 //#if MC>=11400
-import java.util.concurrent.CompletableFuture;
+//$$ import java.util.concurrent.CompletableFuture;
 //#endif
 
 //#if MC<11400
-//$$ import java.util.concurrent.FutureTask;
+import java.util.concurrent.FutureTask;
 //#endif
 
 //#if MC<11400
-//$$ import net.minecraft.client.resources.IResourcePack;
-//$$ import java.util.List;
+import net.minecraft.client.resources.IResourcePack;
+import java.util.List;
 //#endif
 
-@Mixin(MinecraftClient.class)
+@Mixin(Minecraft.class)
 public interface MinecraftAccessor {
-    @Accessor("renderTickCounter")
-    RenderTickCounter getTimer();
-    @Accessor("renderTickCounter")
+    @Accessor
+    Timer getTimer();
+    @Accessor
     //#if MC>=11200
     @Mutable
     //#endif
-    void setTimer(RenderTickCounter value);
+    void setTimer(Timer value);
 
     //#if MC>=11400
-    @Accessor
-    CompletableFuture<Void> getResourceReloadFuture();
-    @Accessor
-    void setResourceReloadFuture(CompletableFuture<Void> value);
+    //$$ @Accessor("field_213276_aV")
+    //$$ CompletableFuture<Void> getResourceReloadFuture();
+    //$$ @Accessor("field_213276_aV")
+    //$$ void setResourceReloadFuture(CompletableFuture<Void> value);
     //#endif
 
     //#if MC>=11400
-    @Accessor
-    Queue<Runnable> getRenderTaskQueue();
+    //$$ @Accessor("field_213275_aU")
+    //$$ Queue<Runnable> getRenderTaskQueue();
     //#else
-    //$$ @Accessor
-    //$$ Queue<FutureTask<?>> getScheduledTasks();
+    @Accessor
+    Queue<FutureTask<?>> getScheduledTasks();
     //#endif
 
-    @Accessor("crashReport")
+    @Accessor
     //#if MC>=11800
     //$$ Supplier<CrashReport> getCrashReporter();
     //#else
@@ -60,12 +60,12 @@ public interface MinecraftAccessor {
     //#endif
 
     //#if MC<11400
-    //$$ @Accessor
-    //$$ List<IResourcePack> getDefaultResourcePacks();
+    @Accessor
+    List<IResourcePack> getDefaultResourcePacks();
     //#endif
 
     //#if MC>=11400
-    @Accessor
-    void setConnection(ClientConnection connection);
+    //$$ @Accessor("networkManager")
+    //$$ void setConnection(NetworkManager connection);
     //#endif
 }

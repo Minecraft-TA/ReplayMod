@@ -12,21 +12,21 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  * this redirect ensures that it is synced with the time in the Replay instead.
  */
 //#if MC>=11400
-// FIXME: preprocessor should be able to remap between fabric and forge
+//$$ // FIXME: preprocessor should be able to remap between fabric and forge
 //#if FABRIC
-@Mixin(targets = "net.minecraft.world.border.WorldBorder.MovingArea")
+//$$ @Mixin(targets = "net.minecraft.world.border.WorldBorder$MovingArea")
 //#else
 //$$ @Mixin(targets = "net.minecraft.world.border.WorldBorder.MovingBorderInfo")
 //#endif
 //#else
-//$$ @Mixin(net.minecraft.world.border.WorldBorder.class)
+@Mixin(net.minecraft.world.border.WorldBorder.class)
 //#endif
 public class Mixin_UseReplayTime_ForMovement {
 
     //#if MC>=11400
-    @Redirect(method = "*", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/Util;getMeasuringTimeMs()J"))
+    //$$ @Redirect(method = "*", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/Util;milliTime()J"))
     //#else
-    //$$ @Redirect(method = "*", at = @At(value = "INVOKE", target = "Ljava/lang/System;currentTimeMillis()J"))
+    @Redirect(method = "*", at = @At(value = "INVOKE", target = "Ljava/lang/System;currentTimeMillis()J"))
     //#endif
     private long getWorldBorderTime() {
         ReplayHandler replayHandler = ReplayModReplay.instance.getReplayHandler();

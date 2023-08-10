@@ -4,13 +4,13 @@ package com.replaymod.compat.shaders;
 import com.replaymod.core.events.PreRenderCallback;
 import com.replaymod.render.hooks.EntityRendererHandler;
 import de.johni0702.minecraft.gui.utils.EventRegistrations;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 
 import java.lang.reflect.InvocationTargetException;
 
 public class ShaderBeginRender extends EventRegistrations {
 
-    private final MinecraftClient mc = MinecraftClient.getInstance();
+    private final Minecraft mc = Minecraft.getMinecraft();
 
     /**
      *  Invokes Shaders#beginRender when rendering a video,
@@ -24,7 +24,7 @@ public class ShaderBeginRender extends EventRegistrations {
 
         try {
             // check if video is being rendered
-            if (((EntityRendererHandler.IEntityRenderer) mc.gameRenderer).replayModRender_getHandler() == null)
+            if (((EntityRendererHandler.IEntityRenderer) mc.entityRenderer).replayModRender_getHandler() == null)
                 return;
 
             // check if Shaders are enabled
@@ -32,9 +32,9 @@ public class ShaderBeginRender extends EventRegistrations {
 
             ShaderReflection.shaders_beginRender.invoke(null, mc,
                     //#if MC>=11400
-                    mc.gameRenderer.getCamera(),
+                    //$$ mc.gameRenderer.getActiveRenderInfo(),
                     //#endif
-                    mc.getTickDelta(), 0);
+                    mc.getRenderPartialTicks(), 0);
         } catch (IllegalAccessException | InvocationTargetException e) {
             e.printStackTrace();
         }

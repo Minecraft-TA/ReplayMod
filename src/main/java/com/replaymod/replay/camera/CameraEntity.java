@@ -18,68 +18,68 @@ import com.replaymod.replay.ReplayModReplay;
 import com.replaymod.replay.Setting;
 import com.replaymod.replay.mixin.FirstPersonRendererAccessor;
 import com.replaymod.replaystudio.util.Location;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.AbstractClientPlayerEntity;
-import net.minecraft.client.network.ClientPlayNetworkHandler;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.entity.AbstractClientPlayer;
+import net.minecraft.client.network.NetHandlerPlayClient;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.entity.decoration.ItemFrameEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.entity.EntityLiving;
+import net.minecraft.entity.item.EntityItemFrame;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.stat.StatHandler;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.Box;
+import net.minecraft.stats.StatisticsManager;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.AxisAlignedBB;
 
 //#if FABRIC>=1
 //#else
-//$$ import net.minecraftforge.client.event.EntityViewRenderEvent;
-//$$ import net.minecraftforge.client.event.RenderGameOverlayEvent;
-//$$ import net.minecraftforge.common.MinecraftForge;
-//$$ import net.minecraftforge.eventbus.api.EventPriority;
-//$$ import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.client.event.EntityViewRenderEvent;
+import net.minecraftforge.client.event.RenderGameOverlayEvent;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 //#endif
 
 //#if MC>=11400
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.fluid.Fluid;
+//$$ import net.minecraft.client.world.ClientWorld;
+//$$ import net.minecraft.fluid.Fluid;
 //#if MC>=11802
 //$$ import net.minecraft.tag.TagKey;
 //#else
-import net.minecraft.tag.Tag;
+//$$ import net.minecraft.tags.Tag;
 //#endif
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.hit.HitResult;
-//#else
-//$$ import com.replaymod.replay.events.ReplayChatMessageEvent;
+//$$ import net.minecraft.util.math.BlockRayTraceResult;
 //$$ import net.minecraft.util.math.RayTraceResult;
-//$$ import net.minecraft.util.text.ITextComponent;
-//$$ import net.minecraft.world.World;
-//$$
+//#else
+import com.replaymod.replay.events.ReplayChatMessageEvent;
+import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.world.World;
+
 //#if MC>=11400
 //$$ import net.minecraft.util.math.RayTraceFluidMode;
 //#else
-//$$ import net.minecraft.block.material.Material;
-//$$ import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.block.material.Material;
+import net.minecraft.entity.EntityLivingBase;
 //#endif
 //#endif
 
 //#if MC>=10904
-import net.minecraft.entity.EquipmentSlot;
+import net.minecraft.inventory.EntityEquipmentSlot;
 //#if MC>=11200
 //#if MC>=11400
-import net.minecraft.client.recipebook.ClientRecipeBook;
+//$$ import net.minecraft.client.util.ClientRecipeBook;
 //#else
-//$$ import net.minecraft.stats.RecipeBook;
+import net.minecraft.stats.RecipeBook;
 //#endif
 //#endif
-import net.minecraft.util.Arm;
-import net.minecraft.util.Hand;
+import net.minecraft.util.EnumHandSide;
+import net.minecraft.util.EnumHand;
 //#endif
 
 //#if MC>=10800
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.client.render.entity.PlayerModelPart;
+import net.minecraft.client.entity.EntityPlayerSP;
+import net.minecraft.entity.player.EnumPlayerModelParts;
 //#else
 //$$ import net.minecraft.client.entity.EntityClientPlayerMP;
 //$$ import net.minecraft.util.Session;
@@ -100,7 +100,7 @@ import static com.replaymod.core.versions.MCVer.*;
 @SuppressWarnings("EntityConstructor")
 public class CameraEntity
         //#if MC>=10800
-        extends ClientPlayerEntity
+        extends EntityPlayerSP
         //#else
         //$$ extends EntityClientPlayerMP
         //#endif
@@ -129,22 +129,22 @@ public class CameraEntity
     private EventHandler eventHandler = new EventHandler();
 
     public CameraEntity(
-            MinecraftClient mcIn,
+            Minecraft mcIn,
             //#if MC>=11400
-            ClientWorld worldIn,
+            //$$ ClientWorld worldIn,
             //#else
-            //$$ World worldIn,
+            World worldIn,
             //#endif
             //#if MC<10800
             //$$ Session session,
             //#endif
-            ClientPlayNetworkHandler netHandlerPlayClient,
-            StatHandler statisticsManager
+            NetHandlerPlayClient netHandlerPlayClient,
+            StatisticsManager statisticsManager
             //#if MC>=11200
             //#if MC>=11400
-            , ClientRecipeBook recipeBook
+            //$$ , ClientRecipeBook recipeBook
             //#else
-            //$$ , RecipeBook recipeBook
+            , RecipeBook recipeBook
             //#endif
             //#endif
     ) {
@@ -159,12 +159,12 @@ public class CameraEntity
                 , recipeBook
                 //#endif
                 //#if MC>=11600
-                , false
-                , false
+                //$$ , false
+                //$$ , false
                 //#endif
         );
         //#if MC>=10900
-        setUuid(CAMERA_UUID);
+        setUniqueId(CAMERA_UUID);
         //#else
         //$$ entityUniqueID = CAMERA_UUID;
         //#endif
@@ -191,7 +191,7 @@ public class CameraEntity
      * @param z Delta in Z direction
      */
     public void moveCamera(double x, double y, double z) {
-        setCameraPosition(this.getX() + x, this.getY() + y, this.getZ() + z);
+        setCameraPosition(this.posX + x, this.posY + y, this.posZ + z);
     }
 
     /**
@@ -201,10 +201,10 @@ public class CameraEntity
      * @param z Z coordinate
      */
     public void setCameraPosition(double x, double y, double z) {
-        this.lastRenderX = this.prevX = x;
-        this.lastRenderY = this.prevY = y;
-        this.lastRenderZ = this.prevZ = z;
-        this.setPos(x, y, z);
+        this.lastTickPosX = this.prevPosX = x;
+        this.lastTickPosY = this.prevPosY = y;
+        this.lastTickPosZ = this.prevPosZ = z;
+        { net.minecraft.entity.Entity self = this; self.posX = x; self.posY = y; self.posZ = z; }
         updateBoundingBox();
     }
 
@@ -215,10 +215,10 @@ public class CameraEntity
      * @param roll Roll in degrees
      */
     public void setCameraRotation(float yaw, float pitch, float roll) {
-        this.prevYaw = yaw;
-        this.prevPitch = pitch;
-        this.yaw = yaw;
-        this.pitch = pitch;
+        this.prevRotationYaw = yaw;
+        this.prevRotationPitch = pitch;
+        this.rotationYaw = yaw;
+        this.rotationPitch = pitch;
         this.roll = roll;
     }
 
@@ -242,81 +242,81 @@ public class CameraEntity
         //#else
         //$$ float yOffset = 1.62f; // Magic value (eye height) from EntityRenderer#orientCamera
         //#endif
-        this.prevX = to.prevX;
-        this.prevY = to.prevY + yOffset;
-        this.prevZ = to.prevZ;
-        this.prevYaw = to.prevYaw;
-        this.prevPitch = to.prevPitch;
-        this.setPos(to.getX(), to.getY(), to.getZ());
-        this.yaw = to.yaw;
-        this.pitch = to.pitch;
-        this.lastRenderX = to.lastRenderX;
-        this.lastRenderY = to.lastRenderY + yOffset;
-        this.lastRenderZ = to.lastRenderZ;
+        this.prevPosX = to.prevPosX;
+        this.prevPosY = to.prevPosY + yOffset;
+        this.prevPosZ = to.prevPosZ;
+        this.prevRotationYaw = to.prevRotationYaw;
+        this.prevRotationPitch = to.prevRotationPitch;
+        { net.minecraft.entity.Entity self = this; self.posX = to.posX; self.posY = to.posY; self.posZ = to.posZ; }
+        this.rotationYaw = to.rotationYaw;
+        this.rotationPitch = to.rotationPitch;
+        this.lastTickPosX = to.lastTickPosX;
+        this.lastTickPosY = to.lastTickPosY + yOffset;
+        this.lastTickPosZ = to.lastTickPosZ;
         this.wrapArmYaw();
         updateBoundingBox();
     }
 
     //#if MC>=11400
-    @Override
-    public float getYaw(float tickDelta) {
-        Entity view = this.client.getCameraEntity();
-        if (view != null && view != this) {
-            return this.prevYaw + (this.yaw - this.prevYaw) * tickDelta;
-        }
-        return super.getYaw(tickDelta);
-    }
-
-    @Override
-    public float getPitch(float tickDelta) {
-        Entity view = this.client.getCameraEntity();
-        if (view != null && view != this) {
-            return this.prevPitch + (this.pitch - this.prevPitch) * tickDelta;
-        }
-        return super.getPitch(tickDelta);
-    }
+    //$$ @Override
+    //$$ public float getYaw(float tickDelta) {
+    //$$     Entity view = this.mc.getRenderViewEntity();
+    //$$     if (view != null && view != this) {
+    //$$         return this.prevRotationYaw + (this.rotationYaw - this.prevRotationYaw) * tickDelta;
+    //$$     }
+    //$$     return super.getYaw(tickDelta);
+    //$$ }
+    //$$
+    //$$ @Override
+    //$$ public float getPitch(float tickDelta) {
+    //$$     Entity view = this.mc.getRenderViewEntity();
+    //$$     if (view != null && view != this) {
+    //$$         return this.prevRotationPitch + (this.rotationPitch - this.prevRotationPitch) * tickDelta;
+    //$$     }
+    //$$     return super.getPitch(tickDelta);
+    //$$ }
     //#endif
 
     private void updateBoundingBox() {
         //#if MC>=11400
-        float width = getWidth();
-        float height = getHeight();
+        //$$ float width = getWidth();
+        //$$ float height = getHeight();
         //#endif
         //#if MC>=10800
-        setBoundingBox(new Box(
+        setEntityBoundingBox(new AxisAlignedBB(
         //#else
         //$$ this.boundingBox.setBB(AxisAlignedBB.getBoundingBox(
         //#endif
-                this.getX() - width / 2, this.getY(), this.getZ() - width / 2,
-                this.getX() + width / 2, this.getY() + height, this.getZ() + width / 2));
+                this.posX - width / 2, this.posY, this.posZ - width / 2,
+                this.posX + width / 2, this.posY + height, this.posZ + width / 2));
     }
 
     @Override
-    public void tick() {
+    public void onUpdate() {
         //#if MC>=10800
         Entity view =
         //#else
         //$$ EntityLivingBase view =
         //#endif
-            this.client.getCameraEntity();
+            this.mc.getRenderViewEntity();
         if (view != null) {
             // Make sure we're always spectating the right entity
             // This is important if the spectated player respawns as their
             // entity is recreated and we have to spectate a new entity
             UUID spectating = ReplayModReplay.instance.getReplayHandler().getSpectatedUUID();
-            if (spectating != null && (view.getUuid() != spectating
+            if (spectating != null && (view.getUniqueID() != spectating
                     || view.world != this.world)
-                    || this.world.getEntityById(view.getEntityId()) != view) {
+                    || this.world.getEntityByID(view.getEntityId()) != view) {
                 if (spectating == null) {
                     // Entity (non-player) died, stop spectating
                     ReplayModReplay.instance.getReplayHandler().spectateEntity(this);
                     return;
                 }
-                view = this.world.getPlayerByUuid(spectating);
+                view = this.world.getPlayerEntityByUUID(spectating);
                 if (view != null) {
-                    this.client.setCameraEntity(view);
+                    this.mc.setRenderViewEntity(view);
                 } else {
-                    this.client.setCameraEntity(this);
+                    this.mc.setRenderViewEntity(this);
                     return;
                 }
             }
@@ -329,81 +329,81 @@ public class CameraEntity
     }
 
     @Override
-    public void afterSpawn() {
+    public void preparePlayerToSpawn() {
         // Make sure our world is up-to-date in case of world changes
-        if (this.client.world != null) {
+        if (this.mc.world != null) {
             // FIXME cannot use Patters because `setWorld` is `protected` in 1.20
             //#if MC>=12000
             //$$ this.setWorld(this.client.world);
             //#else
-            this.world = this.client.world;
+            this.world = this.mc.world;
             //#endif
         }
-        super.afterSpawn();
+        super.preparePlayerToSpawn();
     }
 
     @Override
     public void setRotation(float yaw, float pitch) {
-        if (this.client.getCameraEntity() == this) {
+        if (this.mc.getRenderViewEntity() == this) {
             // Only update camera rotation when the camera is the view
             super.setRotation(yaw, pitch);
         }
     }
 
     @Override
-    public boolean isInsideWall() {
-        return falseUnlessSpectating(Entity::isInsideWall); // Make sure no suffocation overlay is rendered
+    public boolean isEntityInsideOpaqueBlock() {
+        return falseUnlessSpectating(Entity::isEntityInsideOpaqueBlock); // Make sure no suffocation overlay is rendered
     }
 
     //#if MC<11400
-    //$$ @Override
-    //$$ public boolean isInsideOfMaterial(Material materialIn) {
-    //$$     return falseUnlessSpectating(e -> e.isInsideOfMaterial(materialIn)); // Make sure no overlays are rendered
-    //$$ }
+    @Override
+    public boolean isInsideOfMaterial(Material materialIn) {
+        return falseUnlessSpectating(e -> e.isInsideOfMaterial(materialIn)); // Make sure no overlays are rendered
+    }
     //#endif
 
     //#if MC>=11400
-    @Override
-    public boolean isSubmergedIn(
+    //$$ @Override
+    //$$ public boolean areEyesInFluid(
             //#if MC>=11802
             //$$ TagKey<Fluid> fluid
             //#else
-            Tag<Fluid> fluid
+            //$$ Tag<Fluid> fluid
             //#endif
-    ) {
-        return falseUnlessSpectating(entity -> entity.isSubmergedIn(fluid));
-    }
-
-    @Override
-    public float getUnderwaterVisibility() {
-        return falseUnlessSpectating(__ -> true) ? super.getUnderwaterVisibility() : 1f;
-    }
+    //$$ ) {
+    //$$     return falseUnlessSpectating(entity -> entity.areEyesInFluid(fluid));
+    //$$ }
+    //$$
+    //$$ @Override
+    //$$ public float getWaterBrightness() {
+    //$$     return falseUnlessSpectating(__ -> true) ? super.getWaterBrightness() : 1f;
+    //$$ }
     //#else
     //#if MC>=10800
-    //$$ @Override
-    //$$ public boolean isInLava() {
-    //$$     return falseUnlessSpectating(Entity::isInLava); // Make sure no lava overlay is rendered
-    //$$ }
+    @Override
+    public boolean isInLava() {
+        return falseUnlessSpectating(Entity::isInLava); // Make sure no lava overlay is rendered
+    }
     //#else
     //$$ @Override
     //$$ public boolean handleLavaMovement() {
     //$$     return falseUnlessSpectating(Entity::handleLavaMovement); // Make sure no lava overlay is rendered
     //$$ }
     //#endif
-    //$$
-    //$$ @Override
-    //$$ public boolean isInWater() {
-    //$$     return falseUnlessSpectating(Entity::isInWater); // Make sure no water overlay is rendered
-    //$$ }
+
+    @Override
+    public boolean isInWater() {
+        return falseUnlessSpectating(Entity::isInWater); // Make sure no water overlay is rendered
+    }
     //#endif
 
     @Override
-    public boolean isOnFire() {
-        return falseUnlessSpectating(Entity::isOnFire); // Make sure no fire overlay is rendered
+    public boolean isBurning() {
+        return falseUnlessSpectating(Entity::isBurning); // Make sure no fire overlay is rendered
     }
 
     private boolean falseUnlessSpectating(Function<Entity, Boolean> property) {
-        Entity view = this.client.getCameraEntity();
+        Entity view = this.mc.getRenderViewEntity();
         if (view != null && view != this) {
             return property.apply(view);
         }
@@ -411,19 +411,19 @@ public class CameraEntity
     }
 
     @Override
-    public boolean isPushable() {
+    public boolean canBePushed() {
         return false; // We are in full control of ourselves
     }
 
     //#if MC>=10800
     @Override
-    protected void spawnSprintingParticles() {
+    protected void createRunningParticles() {
         // We do not produce any particles, we are a camera
     }
     //#endif
 
     @Override
-    public boolean collides() {
+    public boolean canBeCollidedWith() {
         return false; // We are a camera, we cannot collide
     }
 
@@ -436,26 +436,26 @@ public class CameraEntity
     //#endif
 
     //#if MC>=11400
-    @Override
-    public boolean shouldRender(double double_1, double double_2, double double_3) {
-        return false; // never render the camera otherwise it'd be visible e.g. in 3rd-person or with shaders
-    }
-    //#else
     //$$ @Override
-    //$$ public boolean shouldRenderInPass(int pass) {
-    //$$     // Never render the camera
-    //$$     // This is necessary to hide the player head in third person mode and to not
-    //$$     // cause any unwanted shadows when rendering with shaders.
-    //$$     return false;
+    //$$ public boolean isInRangeToRender3d(double double_1, double double_2, double double_3) {
+    //$$     return false; // never render the camera otherwise it'd be visible e.g. in 3rd-person or with shaders
     //$$ }
+    //#else
+    @Override
+    public boolean shouldRenderInPass(int pass) {
+        // Never render the camera
+        // This is necessary to hide the player head in third person mode and to not
+        // cause any unwanted shadows when rendering with shaders.
+        return false;
+    }
     //#endif
 
     //#if MC>=10800
     @Override
-    public float getSpeed() {
-        Entity view = this.client.getCameraEntity();
-        if (view != this && view instanceof AbstractClientPlayerEntity) {
-            return ((AbstractClientPlayerEntity) view).getSpeed();
+    public float getFovModifier() {
+        Entity view = this.mc.getRenderViewEntity();
+        if (view != this && view instanceof AbstractClientPlayer) {
+            return ((AbstractClientPlayer) view).getFovModifier();
         }
         return 1;
     }
@@ -468,7 +468,7 @@ public class CameraEntity
 
     @Override
     public boolean isInvisible() {
-        Entity view = this.client.getCameraEntity();
+        Entity view = this.mc.getRenderViewEntity();
         if (view != this) {
             return view.isInvisible();
         }
@@ -476,116 +476,116 @@ public class CameraEntity
     }
 
     @Override
-    public Identifier getSkinTexture() {
-        Entity view = this.client.getCameraEntity();
-        if (view != this && view instanceof AbstractClientPlayerEntity) {
-            return ((AbstractClientPlayerEntity) view).getSkinTexture();
+    public ResourceLocation getLocationSkin() {
+        Entity view = this.mc.getRenderViewEntity();
+        if (view != this && view instanceof AbstractClientPlayer) {
+            return ((AbstractClientPlayer) view).getLocationSkin();
         }
-        return super.getSkinTexture();
+        return super.getLocationSkin();
     }
 
     //#if MC>=10800
     @Override
-    public String getModel() {
-        Entity view = this.client.getCameraEntity();
-        if (view != this && view instanceof AbstractClientPlayerEntity) {
-            return ((AbstractClientPlayerEntity) view).getModel();
+    public String getSkinType() {
+        Entity view = this.mc.getRenderViewEntity();
+        if (view != this && view instanceof AbstractClientPlayer) {
+            return ((AbstractClientPlayer) view).getSkinType();
         }
-        return super.getModel();
+        return super.getSkinType();
     }
 
     @Override
-    public boolean isPartVisible(PlayerModelPart modelPart) {
-        Entity view = this.client.getCameraEntity();
-        if (view != this && view instanceof PlayerEntity) {
-            return ((PlayerEntity) view).isPartVisible(modelPart);
+    public boolean isWearing(EnumPlayerModelParts modelPart) {
+        Entity view = this.mc.getRenderViewEntity();
+        if (view != this && view instanceof EntityPlayer) {
+            return ((EntityPlayer) view).isWearing(modelPart);
         }
-        return super.isPartVisible(modelPart);
+        return super.isWearing(modelPart);
     }
     //#endif
 
     //#if MC>=10904
     @Override
-    public Arm getMainArm() {
-        Entity view = this.client.getCameraEntity();
-        if (view != this && view instanceof PlayerEntity) {
-            return ((PlayerEntity) view).getMainArm();
+    public EnumHandSide getPrimaryHand() {
+        Entity view = this.mc.getRenderViewEntity();
+        if (view != this && view instanceof EntityPlayer) {
+            return ((EntityPlayer) view).getPrimaryHand();
         }
-        return super.getMainArm();
+        return super.getPrimaryHand();
     }
     //#endif
 
     @Override
-    public float getHandSwingProgress(float renderPartialTicks) {
-        Entity view = this.client.getCameraEntity();
-        if (view != this && view instanceof PlayerEntity) {
-            return ((PlayerEntity) view).getHandSwingProgress(renderPartialTicks);
+    public float getSwingProgress(float renderPartialTicks) {
+        Entity view = this.mc.getRenderViewEntity();
+        if (view != this && view instanceof EntityPlayer) {
+            return ((EntityPlayer) view).getSwingProgress(renderPartialTicks);
         }
         return 0;
     }
 
     //#if MC>=10904
     @Override
-    public float getAttackCooldownProgressPerTick() {
-        Entity view = this.client.getCameraEntity();
-        if (view != this && view instanceof PlayerEntity) {
-            return ((PlayerEntity) view).getAttackCooldownProgressPerTick();
+    public float getCooldownPeriod() {
+        Entity view = this.mc.getRenderViewEntity();
+        if (view != this && view instanceof EntityPlayer) {
+            return ((EntityPlayer) view).getCooldownPeriod();
         }
         return 1;
     }
 
     @Override
-    public float getAttackCooldownProgress(float adjustTicks) {
-        Entity view = this.client.getCameraEntity();
-        if (view != this && view instanceof PlayerEntity) {
-            return ((PlayerEntity) view).getAttackCooldownProgress(adjustTicks);
+    public float getCooledAttackStrength(float adjustTicks) {
+        Entity view = this.mc.getRenderViewEntity();
+        if (view != this && view instanceof EntityPlayer) {
+            return ((EntityPlayer) view).getCooledAttackStrength(adjustTicks);
         }
         // Default to 1 as to not render the cooldown indicator (renders for < 1)
         return 1;
     }
 
     @Override
-    public Hand getActiveHand() {
-        Entity view = this.client.getCameraEntity();
-        if (view != this && view instanceof PlayerEntity) {
-            return ((PlayerEntity) view).getActiveHand();
+    public EnumHand getActiveHand() {
+        Entity view = this.mc.getRenderViewEntity();
+        if (view != this && view instanceof EntityPlayer) {
+            return ((EntityPlayer) view).getActiveHand();
         }
         return super.getActiveHand();
     }
 
     @Override
-    public boolean isUsingItem() {
-        Entity view = this.client.getCameraEntity();
-        if (view != this && view instanceof PlayerEntity) {
-            return ((PlayerEntity) view).isUsingItem();
+    public boolean isHandActive() {
+        Entity view = this.mc.getRenderViewEntity();
+        if (view != this && view instanceof EntityPlayer) {
+            return ((EntityPlayer) view).isHandActive();
         }
-        return super.isUsingItem();
+        return super.isHandActive();
     }
 
     //#if MC>=11400
-    @Override
+    //$$ @Override
     //#if MC>=11900
     //$$ public void onEquipStack(EquipmentSlot slot, ItemStack stack, ItemStack itemStack) {
     //#else
-    protected void onEquipStack(ItemStack itemStack_1) {
+    //$$ protected void playEquipSound(ItemStack itemStack_1) {
     //#endif
-        // Suppress equip sounds
-    }
+    //$$     // Suppress equip sounds
+    //$$ }
     //#endif
 
     //#if MC>=11400
-    @Override
-    public HitResult raycast(double maxDistance, float tickDelta, boolean fluids) {
-        HitResult result = super.raycast(maxDistance, tickDelta, fluids);
-
-        // Make sure we can never look at blocks (-> no outline)
-        if (result instanceof BlockHitResult) {
-            BlockHitResult blockResult = (BlockHitResult) result;
-            result = BlockHitResult.createMissed(result.getPos(), blockResult.getSide(), blockResult.getBlockPos());
-        }
-
-        return result;
-    }
+    //$$ @Override
+    //$$ public RayTraceResult func_213324_a(double maxDistance, float tickDelta, boolean fluids) {
+    //$$     RayTraceResult result = super.func_213324_a(maxDistance, tickDelta, fluids);
+    //$$
+    //$$     // Make sure we can never look at blocks (-> no outline)
+    //$$     if (result instanceof BlockRayTraceResult) {
+    //$$         BlockRayTraceResult blockResult = (BlockRayTraceResult) result;
+    //$$         result = BlockRayTraceResult.createMiss(result.getHitVec(), blockResult.getFace(), blockResult.getPos());
+    //$$     }
+    //$$
+    //$$     return result;
+    //$$ }
     //#else
     //#if MC>=11400
     //$$ @Override
@@ -600,17 +600,17 @@ public class CameraEntity
     //$$     return pos;
     //$$ }
     //#else
-    //$$ @Override
-    //$$ public RayTraceResult rayTrace(double p_174822_1_, float p_174822_3_) {
-    //$$     RayTraceResult pos = super.rayTrace(p_174822_1_, 1f);
-    //$$
-    //$$     // Make sure we can never look at blocks (-> no outline)
-    //$$     if(pos != null && pos.typeOfHit == RayTraceResult.Type.BLOCK) {
-    //$$         pos.typeOfHit = RayTraceResult.Type.MISS;
-    //$$     }
-    //$$
-    //$$     return pos;
-    //$$ }
+    @Override
+    public RayTraceResult rayTrace(double p_174822_1_, float p_174822_3_) {
+        RayTraceResult pos = super.rayTrace(p_174822_1_, 1f);
+
+        // Make sure we can never look at blocks (-> no outline)
+        if(pos != null && pos.typeOfHit == RayTraceResult.Type.BLOCK) {
+            pos.typeOfHit = RayTraceResult.Type.MISS;
+        }
+
+        return pos;
+    }
     //#endif
     //#endif
     //#else
@@ -628,11 +628,11 @@ public class CameraEntity
     //#endif
 
     //#if MC<11400
-    //$$ @Override
-    //$$ public void openGui(Object mod, int modGuiId, World world, int x, int y, int z) {
-    //$$     // Do not open any block GUIs for the camera entities
-    //$$     // Note: Vanilla GUIs are filtered out on a packet level, this only applies to mod GUIs
-    //$$ }
+    @Override
+    public void openGui(Object mod, int modGuiId, World world, int x, int y, int z) {
+        // Do not open any block GUIs for the camera entities
+        // Note: Vanilla GUIs are filtered out on a packet level, this only applies to mod GUIs
+    }
     //#endif
 
     @Override
@@ -640,8 +640,8 @@ public class CameraEntity
     //$$ public void remove(RemovalReason reason) {
     //$$     super.remove(reason);
     //#else
-    public void remove() {
-        super.remove();
+    public void setDead() {
+        super.setDead();
     //#endif
         if (eventHandler != null) {
             eventHandler.unregister();
@@ -650,7 +650,7 @@ public class CameraEntity
     }
 
     private void update() {
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getMinecraft();
         if (mc.world != this.world) {
             if (eventHandler != null) {
                 eventHandler.unregister();
@@ -667,10 +667,10 @@ public class CameraEntity
         handleInputEvents();
 
         Map<String, KeyBindingRegistry.Binding> keyBindings = ReplayMod.instance.getKeyBindingRegistry().getBindings();
-        if (keyBindings.get("replaymod.input.rollclockwise").keyBinding.isPressed()) {
+        if (keyBindings.get("replaymod.input.rollclockwise").keyBinding.isKeyDown()) {
             roll += Utils.isCtrlDown() ? 0.2 : 1;
         }
-        if (keyBindings.get("replaymod.input.rollcounterclockwise").keyBinding.isPressed()) {
+        if (keyBindings.get("replaymod.input.rollcounterclockwise").keyBinding.isKeyDown()) {
             roll -= Utils.isCtrlDown() ? 0.2 : 1;
         }
 
@@ -681,13 +681,13 @@ public class CameraEntity
         syncInventory();
     }
 
-    private final PlayerInventory originalInventory = this.inventory;
+    private final InventoryPlayer originalInventory = this.inventory;
 
     // If we are spectating a player, "steal" its inventory so the rendering code knows what item(s) to render
     // and if we aren't, then reset ours.
     private void syncInventory() {
-        Entity view = this.client.getCameraEntity();
-        PlayerEntity viewPlayer = view != this && view instanceof PlayerEntity ? (PlayerEntity) view : null;
+        Entity view = this.mc.getRenderViewEntity();
+        EntityPlayer viewPlayer = view != this && view instanceof EntityPlayer ? (EntityPlayer) view : null;
         EntityPlayerAccessor cameraA = (EntityPlayerAccessor) this;
         EntityPlayerAccessor viewPlayerA = (EntityPlayerAccessor) viewPlayer;
 
@@ -699,17 +699,17 @@ public class CameraEntity
 
         // TODO switch to replacing the entire inventory for 1.14+ as well, should be easier and faster
         //#if MC>=11400
-        this.equipStack(EquipmentSlot.HEAD, viewPlayer != null ? viewPlayer.getEquippedStack(EquipmentSlot.HEAD) : empty);
-        this.equipStack(EquipmentSlot.MAINHAND, viewPlayer != null ? viewPlayer.getEquippedStack(EquipmentSlot.MAINHAND) : empty);
-        this.equipStack(EquipmentSlot.OFFHAND, viewPlayer != null ? viewPlayer.getEquippedStack(EquipmentSlot.OFFHAND) : empty);
+        //$$ this.setItemStackToSlot(EquipmentSlotType.HEAD, viewPlayer != null ? viewPlayer.getItemStackFromSlot(EquipmentSlotType.HEAD) : empty);
+        //$$ this.setItemStackToSlot(EquipmentSlotType.MAINHAND, viewPlayer != null ? viewPlayer.getItemStackFromSlot(EquipmentSlotType.MAINHAND) : empty);
+        //$$ this.setItemStackToSlot(EquipmentSlotType.OFFHAND, viewPlayer != null ? viewPlayer.getItemStackFromSlot(EquipmentSlotType.OFFHAND) : empty);
         //#else
-        //$$ this.inventory = viewPlayer != null ? viewPlayer.inventory : originalInventory;
+        this.inventory = viewPlayer != null ? viewPlayer.inventory : originalInventory;
         //#endif
 
         //#if MC>=10904
         cameraA.setItemStackMainHand(viewPlayerA != null ? viewPlayerA.getItemStackMainHand() : empty);
-        this.preferredHand = viewPlayer != null ? viewPlayer.preferredHand : Hand.MAIN_HAND;
-        this.activeItemStack = viewPlayer != null ? viewPlayer.getActiveItem() : empty;
+        this.swingingHand = viewPlayer != null ? viewPlayer.swingingHand : EnumHand.MAIN_HAND;
+        this.activeItemStack = viewPlayer != null ? viewPlayer.getActiveItemStack() : empty;
         cameraA.setActiveItemStackUseCount(viewPlayerA != null ? viewPlayerA.getActiveItemStackUseCount() : 0);
         //#else
         //$$ cameraA.setItemInUse(viewPlayerA != null ? viewPlayerA.getItemInUse() : empty);
@@ -718,25 +718,25 @@ public class CameraEntity
     }
 
     private void handleInputEvents() {
-        if (this.client.options.keyAttack.wasPressed() || this.client.options.keyUse.wasPressed()) {
-            if (this.client.currentScreen == null && canSpectate(this.client.targetedEntity)) {
+        if (this.mc.gameSettings.keyBindAttack.isPressed() || this.mc.gameSettings.keyBindUseItem.isPressed()) {
+            if (this.mc.currentScreen == null && canSpectate(this.mc.pointedEntity)) {
                 ReplayModReplay.instance.getReplayHandler().spectateEntity(
                         //#if MC<=10710
                         //$$ (EntityLivingBase)
                         //#endif
-                        this.client.targetedEntity);
+                        this.mc.pointedEntity);
                 // Make sure we don't exit right away
                 //noinspection StatementWithEmptyBody
-                while (this.client.options.keySneak.wasPressed());
+                while (this.mc.gameSettings.keyBindSneak.isPressed());
             }
         }
     }
 
     private void updateArmYawAndPitch() {
-        this.lastRenderYaw = this.renderYaw;
-        this.lastRenderPitch = this.renderPitch;
-        this.renderPitch = this.renderPitch +  (this.pitch - this.renderPitch) * 0.5f;
-        this.renderYaw = this.renderYaw + wrapDegrees(this.yaw - this.renderYaw) * 0.5f;
+        this.prevRenderArmYaw = this.renderArmYaw;
+        this.prevRenderArmPitch = this.renderArmPitch;
+        this.renderArmPitch = this.renderArmPitch +  (this.rotationPitch - this.renderArmPitch) * 0.5f;
+        this.renderArmYaw = this.renderArmYaw + wrapDegrees(this.rotationYaw - this.renderArmYaw) * 0.5f;
         this.wrapArmYaw();
     }
 
@@ -748,8 +748,8 @@ public class CameraEntity
      * outside the normal range.
      */
     private void wrapArmYaw() {
-        this.renderYaw = wrapDegreesTo(this.renderYaw, this.yaw);
-        this.lastRenderYaw = wrapDegreesTo(this.lastRenderYaw, this.renderYaw);
+        this.renderArmYaw = wrapDegreesTo(this.renderArmYaw, this.rotationYaw);
+        this.prevRenderArmYaw = wrapDegreesTo(this.prevRenderArmYaw, this.renderArmYaw);
     }
 
     private static float wrapDegreesTo(float value, float towardsValue) {
@@ -777,11 +777,11 @@ public class CameraEntity
 
     //#if MC<11400
     //#if MC>=11102
-    //$$ @Override
-    //$$ public void sendMessage(ITextComponent message) {
-    //$$     if (MinecraftForge.EVENT_BUS.post(new ReplayChatMessageEvent(this))) return;
-    //$$     super.sendMessage(message);
-    //$$ }
+    @Override
+    public void sendMessage(ITextComponent message) {
+        if (MinecraftForge.EVENT_BUS.post(new ReplayChatMessageEvent(this))) return;
+        super.sendMessage(message);
+    }
     //#else
     //$$ @Override
     //$$ public void addChatMessage(ITextComponent message) {
@@ -797,7 +797,7 @@ public class CameraEntity
     //$$ public // All event handlers need to be public in 1.7.10
     //#endif
     class EventHandler extends EventRegistrations {
-        private final MinecraftClient mc = getMinecraft();
+        private final Minecraft mc = getMinecraft();
 
         private EventHandler() {}
 
@@ -815,7 +815,7 @@ public class CameraEntity
 
         { on(RenderSpectatorCrosshairCallback.EVENT, this::shouldRenderSpectatorCrosshair); }
         private Boolean shouldRenderSpectatorCrosshair() {
-            return canSpectate(mc.targetedEntity);
+            return canSpectate(mc.pointedEntity);
         }
 
         { on(RenderHotbarCallback.EVENT, this::shouldRenderHotbar); }
@@ -837,23 +837,23 @@ public class CameraEntity
         { on(PreRenderHandCallback.EVENT, this::onRenderHand); }
         private boolean onRenderHand() {
             // Unless we are spectating another player, don't render our hand
-            Entity view = mc.getCameraEntity();
-            if (view == CameraEntity.this || !(view instanceof PlayerEntity)) {
+            Entity view = mc.getRenderViewEntity();
+            if (view == CameraEntity.this || !(view instanceof EntityPlayer)) {
                 return true; // cancel hand rendering
             } else {
-                PlayerEntity player = (PlayerEntity) view;
+                EntityPlayer player = (EntityPlayer) view;
                 // When the spectated player has changed, force equip their items to prevent the equip animation
                 if (lastHandRendered != player) {
                     lastHandRendered = player;
 
-                    FirstPersonRendererAccessor acc = (FirstPersonRendererAccessor) mc.gameRenderer.firstPersonRenderer;
+                    FirstPersonRendererAccessor acc = (FirstPersonRendererAccessor) mc.entityRenderer.itemRenderer;
                     //#if MC>=10904
                     acc.setPrevEquippedProgressMainHand(1);
                     acc.setPrevEquippedProgressOffHand(1);
                     acc.setEquippedProgressMainHand(1);
                     acc.setEquippedProgressOffHand(1);
-                    acc.setItemStackMainHand(player.getEquippedStack(EquipmentSlot.MAINHAND));
-                    acc.setItemStackOffHand(player.getEquippedStack(EquipmentSlot.OFFHAND));
+                    acc.setItemStackMainHand(player.getItemStackFromSlot(EntityEquipmentSlot.MAINHAND));
+                    acc.setItemStackOffHand(player.getItemStackFromSlot(EntityEquipmentSlot.OFFHAND));
                     //#else
                     //$$ acc.setPrevEquippedProgress(1);
                     //$$ acc.setEquippedProgress(1);
@@ -862,76 +862,76 @@ public class CameraEntity
                     //#endif
 
 
-                    mc.player.renderYaw = mc.player.lastRenderYaw = player.yaw;
-                    mc.player.renderPitch = mc.player.lastRenderPitch = player.pitch;
+                    mc.player.renderArmYaw = mc.player.prevRenderArmYaw = player.rotationYaw;
+                    mc.player.renderArmPitch = mc.player.prevRenderArmPitch = player.rotationPitch;
                 }
                 return false;
             }
         }
 
         //#if MC>=11400
-        // Moved to MixinCamera
+        //$$ // Moved to MixinCamera
         //#else
         //#if MC>=10800
-        //$$ @SubscribeEvent
-        //$$ public void onEntityViewRenderEvent(EntityViewRenderEvent.CameraSetup event) {
-        //$$     if (mc.getRenderViewEntity() == CameraEntity.this) {
+        @SubscribeEvent
+        public void onEntityViewRenderEvent(EntityViewRenderEvent.CameraSetup event) {
+            if (mc.getRenderViewEntity() == CameraEntity.this) {
                 //#if MC>=10904
-                //$$ event.setRoll(roll);
+                event.setRoll(roll);
                 //#else
                 //$$ event.roll = roll;
                 //#endif
-        //$$     }
-        //$$ }
+            }
+        }
         //#endif
         //#endif
 
         private boolean heldItemTooltipsWasTrue;
 
         //#if FABRIC>=1
-        // FIXME fabric
+        //$$ // FIXME fabric
         //#else
-        //$$ @SubscribeEvent
-        //$$ public void preRenderGameOverlay(RenderGameOverlayEvent.Pre event) {
-        //$$     switch (event.getType()) {
-        //$$         case ALL:
-        //$$             heldItemTooltipsWasTrue = mc.gameSettings.heldItemTooltips;
-        //$$             mc.gameSettings.heldItemTooltips = false;
-        //$$             break;
-        //$$         case ARMOR:
-        //$$         case HEALTH:
-        //$$         case FOOD:
-        //$$         case AIR:
-        //$$         case HOTBAR:
-        //$$         case EXPERIENCE:
-        //$$         case HEALTHMOUNT:
-        //$$         case JUMPBAR:
+        @SubscribeEvent
+        public void preRenderGameOverlay(RenderGameOverlayEvent.Pre event) {
+            switch (event.getType()) {
+                case ALL:
+                    heldItemTooltipsWasTrue = mc.gameSettings.heldItemTooltips;
+                    mc.gameSettings.heldItemTooltips = false;
+                    break;
+                case ARMOR:
+                case HEALTH:
+                case FOOD:
+                case AIR:
+                case HOTBAR:
+                case EXPERIENCE:
+                case HEALTHMOUNT:
+                case JUMPBAR:
                 //#if MC>=10904
-                //$$ case POTION_ICONS:
+                case POTION_ICONS:
                 //#endif
-        //$$             event.setCanceled(true);
-        //$$             break;
-        //$$         case HELMET:
-        //$$         case PORTAL:
-        //$$         case CROSSHAIRS:
-        //$$         case BOSSHEALTH:
+                    event.setCanceled(true);
+                    break;
+                case HELMET:
+                case PORTAL:
+                case CROSSHAIRS:
+                case BOSSHEALTH:
                 //#if MC>=10904
-                //$$ case BOSSINFO:
-                //$$ case SUBTITLES:
+                case BOSSINFO:
+                case SUBTITLES:
                 //#endif
-        //$$         case TEXT:
-        //$$         case CHAT:
-        //$$         case PLAYER_LIST:
-        //$$         case DEBUG:
-        //$$             break;
-        //$$     }
-        //$$ }
-        //$$
-        //$$ @SubscribeEvent
-        //$$ public void postRenderGameOverlay(RenderGameOverlayEvent.Post event) {
-        //$$     if (event.getType() != RenderGameOverlayEvent.ElementType.ALL) return;
-        //$$     mc.gameSettings.heldItemTooltips = heldItemTooltipsWasTrue;
-        //$$ }
+                case TEXT:
+                case CHAT:
+                case PLAYER_LIST:
+                case DEBUG:
+                    break;
+            }
+        }
+
+        @SubscribeEvent
+        public void postRenderGameOverlay(RenderGameOverlayEvent.Post event) {
+            if (event.getType() != RenderGameOverlayEvent.ElementType.ALL) return;
+            mc.gameSettings.heldItemTooltips = heldItemTooltipsWasTrue;
+        }
         //#endif
     }
 }

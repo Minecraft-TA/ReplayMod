@@ -366,7 +366,7 @@ dependencies {
 
     shadow 'org.aspectj:aspectjrt:1.8.2'
 
-    shadow 'com.github.ReplayMod.JavaBlend:2.79.0:a0696f8'
+    shadow 'com.github.ReplayMod.JavaBlend:2.79.0:a0696f8' // shadow 'com.github.Minecraft-TA.JavaBlend:2.93.21:0666b42'
 
     shadow "com.github.ReplayMod:ReplayStudio:a1e2b83", shadeExclusions
 
@@ -409,9 +409,9 @@ dependencies {
     }
 
     if (mcVersion >= 11600) {
-        modCompileOnly("com.github.IrisShaders:Iris:1.18.x~v1.2.0") {
+       /* modCompileOnly("com.github.IrisShaders:Iris:1.18.x-v1.3.1") {
             transitive = false // we do not want to upgrade our libs, we only need this to compile our mixins
-        }
+        }*/
     }
 
     testImplementation 'junit:junit:4.11'

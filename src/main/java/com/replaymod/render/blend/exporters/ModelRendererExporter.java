@@ -9,14 +9,14 @@ import org.lwjgl.opengl.GL11;
 
 //#if MC>=11400
 //#if MC>=11500
-import net.minecraft.client.model.ModelPart.Cuboid;
+//$$ import net.minecraft.client.model.ModelPart.Cuboid;
 //#else
-//$$ import net.minecraft.client.model.Box;
+//$$ import net.minecraft.client.renderer.model.ModelBox;
 //#endif
-import net.minecraft.client.model.ModelPart;
+//$$ import net.minecraft.client.renderer.entity.model.RendererModel;
 //#else
-//$$ import net.minecraft.client.model.ModelBox;
-//$$ import net.minecraft.client.model.ModelRenderer;
+import net.minecraft.client.model.ModelBox;
+import net.minecraft.client.model.ModelRenderer;
 //#endif
 
 import java.io.IOException;
@@ -34,7 +34,7 @@ public class ModelRendererExporter implements Exporter {
     public void setup() throws IOException {
     }
 
-    public void preRenderModel(ModelPart model, float scale) {
+    public void preRenderModel(ModelRenderer model, float scale) {
         DObject object = getObjectForModel(model, scale);
         renderState.pushObject(object);
         renderState.pushModelView();
@@ -56,7 +56,7 @@ public class ModelRendererExporter implements Exporter {
         renderState.pop();
     }
 
-    private DObject getObjectForModel(ModelPart model, float scale) {
+    private DObject getObjectForModel(ModelRenderer model, float scale) {
         int frame = renderState.getFrame();
         DObject parent = renderState.peekObject();
         DObject object = null;
@@ -71,9 +71,9 @@ public class ModelRendererExporter implements Exporter {
         if (object == null) {
             object = new ModelBasedDObject(model, scale);
             //#if MC>=11500
-            object.id.name = "???"; // FIXME 1.15 can we somehow nicely derive this?
+            //$$ object.id.name = "???"; // FIXME 1.15 can we somehow nicely derive this?
             //#else
-            //$$ object.id.name = model.name;
+            object.id.name = model.boxName;
             //#endif
             object.setParent(parent);
         }
@@ -81,15 +81,15 @@ public class ModelRendererExporter implements Exporter {
         return object;
     }
 
-    private static DMesh generateMesh(ModelPart model, float scale) {
+    private static DMesh generateMesh(ModelRenderer model, float scale) {
         DMesh mesh = new DMesh();
         BlendMeshBuilder builder = new BlendMeshBuilder(mesh);
         //#if MC>=11500
-        // FIXME 1.15
+        //$$ // FIXME 1.15
         //#elseif MC>=10809
-        //$$ for (Box box : model.boxes) {
-        //$$     box.render(builder, scale);
-        //$$ }
+        for (ModelBox box : model.cubeList) {
+            box.render(builder, scale);
+        }
         //#else
         //$$ for (ModelBox box : (java.util.List<ModelBox>) model.cubeList) {
         //$$     box.render(builder, scale);
@@ -100,17 +100,17 @@ public class ModelRendererExporter implements Exporter {
     }
 
     private static class ModelBasedDObject extends DObject {
-        private final ModelPart model;
+        private final ModelRenderer model;
         private final float scale;
         private boolean valid;
 
-        public ModelBasedDObject(ModelPart model, float scale) {
+        public ModelBasedDObject(ModelRenderer model, float scale) {
             super(generateMesh(model, scale));
             this.model = model;
             this.scale = scale;
         }
 
-        public boolean isBasedOn(ModelPart model, float scale) {
+        public boolean isBasedOn(ModelRenderer model, float scale) {
             return this.model == model && Math.abs(this.scale - scale) < 1e-4;
         }
 

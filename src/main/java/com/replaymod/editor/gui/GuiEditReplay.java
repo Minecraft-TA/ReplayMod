@@ -20,7 +20,7 @@ import de.johni0702.minecraft.gui.layout.VerticalLayout;
 import de.johni0702.minecraft.gui.popup.AbstractGuiPopup;
 import de.johni0702.minecraft.gui.utils.lwjgl.Color;
 import de.johni0702.minecraft.gui.utils.lwjgl.ReadableDimension;
-import net.minecraft.util.crash.CrashReport;
+import net.minecraft.crash.CrashReport;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -157,7 +157,7 @@ public class GuiEditReplay extends AbstractGuiPopup<GuiEditReplay> {
                 replayFile.writeMarkers(markers);
                 replayFile.save();
             } catch (IOException e) {
-                Utils.error(ReplayModEditor.LOGGER, this, CrashReport.create(e, "Writing markers"), this::close);
+                Utils.error(ReplayModEditor.LOGGER, this, CrashReport.makeCrashReport(e, "Writing markers"), this::close);
             }
 
             try {
@@ -169,7 +169,7 @@ public class GuiEditReplay extends AbstractGuiPopup<GuiEditReplay> {
                 });
             } catch (Throwable e) {
                 e.printStackTrace(); // in case runLater fails
-                CrashReport crashReport = CrashReport.create(e, "Running marker processor");
+                CrashReport crashReport = CrashReport.makeCrashReport(e, "Running marker processor");
                 ReplayMod.instance.runLater(() -> Utils.error(ReplayModEditor.LOGGER, this, crashReport, () -> {
                     progressPopup.close();
                     close();

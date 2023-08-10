@@ -10,10 +10,10 @@ import org.spongepowered.asm.mixin.Unique;
 public abstract class Mixin_EntityExt implements EntityExt {
 
     @Shadow
-    public float yaw;
+    public float rotationYaw;
 
     @Shadow
-    public float pitch;
+    public float rotationPitch;
 
     @Unique
     private float trackedYaw = Float.NaN;
@@ -23,12 +23,12 @@ public abstract class Mixin_EntityExt implements EntityExt {
 
     @Override
     public float replaymod$getTrackedYaw() {
-        return !Float.isNaN(this.trackedYaw) ? this.trackedYaw : this.yaw;
+        return !Float.isNaN(this.trackedYaw) ? this.trackedYaw : this.rotationYaw;
     }
 
     @Override
     public float replaymod$getTrackedPitch() {
-        return !Float.isNaN(this.trackedPitch) ? this.trackedPitch : this.pitch;
+        return !Float.isNaN(this.trackedPitch) ? this.trackedPitch : this.rotationPitch;
     }
 
     @Override

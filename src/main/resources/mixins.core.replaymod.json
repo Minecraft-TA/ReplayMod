@@ -6,12 +6,12 @@
   "client": [
     "Mixin_ContextualKeyBindings",
     //#if MC>=11400
-    "AbstractButtonWidgetAccessor",
-    "MixinGameRenderer",
-    "Mixin_InjectDynamicResourcePacks",
+    //$$ "AbstractButtonWidgetAccessor",
+    //$$ "MixinGameRenderer",
+    //$$ "Mixin_InjectDynamicResourcePacks",
     //#endif
     //#if MC>=11400
-    "MixinMouse",
+    //$$ "MixinMouse",
     //#endif
     //#if MC<10800
     //$$ "ResourcePackRepositoryAccessor",

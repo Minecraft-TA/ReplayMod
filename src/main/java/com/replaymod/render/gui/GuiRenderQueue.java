@@ -36,8 +36,8 @@ import de.johni0702.minecraft.gui.utils.Colors;
 import de.johni0702.minecraft.gui.utils.lwjgl.Dimension;
 import de.johni0702.minecraft.gui.utils.lwjgl.ReadableDimension;
 import de.johni0702.minecraft.gui.utils.lwjgl.ReadablePoint;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.util.crash.CrashReport;
+import net.minecraft.client.Minecraft;
+import net.minecraft.crash.CrashReport;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -54,9 +54,9 @@ import java.util.stream.Collectors;
 import static com.replaymod.render.ReplayModRender.LOGGER;
 
 //#if MC>=11400
-import net.minecraft.text.TranslatableText;
+//$$ import net.minecraft.util.text.TranslationTextComponent;
 //#else
-//$$ import com.replaymod.replaystudio.util.I18n;
+import com.replaymod.replaystudio.util.I18n;
 //#endif
 
 public class GuiRenderQueue extends AbstractGuiPopup<GuiRenderQueue> implements Typeable {
@@ -167,10 +167,10 @@ public class GuiRenderQueue extends AbstractGuiPopup<GuiRenderQueue> implements 
     }
 
     private static void processQueue(AbstractGuiScreen<?> container, ReplayHandler replayHandler, Iterable<RenderJob> queue, Runnable done) {
-        MinecraftClient mc = MCVer.getMinecraft();
+        Minecraft mc = MCVer.getMinecraft();
 
         // Close all GUIs (so settings in GuiRenderSettings are saved)
-        mc.openScreen(null);
+        mc.displayGuiScreen(null);
         // Start rendering
         int jobsDone = 0;
         for (RenderJob renderJob : queue) {
@@ -180,7 +180,7 @@ public class GuiRenderQueue extends AbstractGuiPopup<GuiRenderQueue> implements 
                 videoRenderer.renderVideo();
             } catch (FFmpegWriter.NoFFmpegException e) {
                 LOGGER.error("Rendering video:", e);
-                mc.openScreen(new GuiNoFfmpeg(container::display).toMinecraft());
+                mc.displayGuiScreen(new GuiNoFfmpeg(container::display).toMinecraft());
                 return;
             } catch (FFmpegWriter.FFmpegStartupException e) {
                 int jobsToSkip = jobsDone;
@@ -192,7 +192,7 @@ public class GuiRenderQueue extends AbstractGuiPopup<GuiRenderQueue> implements 
                 });
                 return;
             } catch (Throwable t) {
-                Utils.error(LOGGER, container, CrashReport.create(t, "Rendering video"), () -> {});
+                Utils.error(LOGGER, container, CrashReport.makeCrashReport(t, "Rendering video"), () -> {});
                 container.display(); // Re-show the queue popup and the new error popup
                 return;
             }
@@ -220,7 +220,7 @@ public class GuiRenderQueue extends AbstractGuiPopup<GuiRenderQueue> implements 
             replayFile = mod.getCore().files.open(next.getKey().toPath());
             replayHandler = mod.startReplay(replayFile, false, false);
         } catch (IOException e) {
-            Utils.error(LOGGER, container, CrashReport.create(e, "Opening replay"), () -> {});
+            Utils.error(LOGGER, container, CrashReport.makeCrashReport(e, "Opening replay"), () -> {});
             container.display(); // Re-show the queue popup and the new error popup
             IOUtils.closeQuietly(replayFile);
             return;
@@ -233,7 +233,7 @@ public class GuiRenderQueue extends AbstractGuiPopup<GuiRenderQueue> implements 
         }
         ReplaySender replaySender = replayHandler.getReplaySender();
 
-        MinecraftClient mc = mod.getCore().getMinecraft();
+        Minecraft mc = mod.getCore().getMinecraft();
         int jumpTo = 1000;
         while (mc.world == null && jumpTo < replayHandler.getReplayDuration()) {
             replaySender.sendPacketsTill(jumpTo);
@@ -250,7 +250,7 @@ public class GuiRenderQueue extends AbstractGuiPopup<GuiRenderQueue> implements 
             try {
                 replayHandler.endReplay();
             } catch (IOException e) {
-                Utils.error(LOGGER, container, CrashReport.create(e, "Closing replay"), () -> {});
+                Utils.error(LOGGER, container, CrashReport.makeCrashReport(e, "Closing replay"), () -> {});
                 container.display(); // Re-show the queue popup and the new error popup
                 return;
             }

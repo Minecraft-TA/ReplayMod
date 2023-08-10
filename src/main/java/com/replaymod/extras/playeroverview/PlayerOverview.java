@@ -12,14 +12,14 @@ import com.replaymod.replay.events.ReplayOpenedCallback;
 import com.replaymod.replaystudio.lib.guava.base.Optional;
 import de.johni0702.minecraft.gui.utils.EventRegistrations;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.EntityPlayer;
 
 //#if MC>=11400
-import java.util.stream.Collectors;
+//$$ import java.util.stream.Collectors;
 //#else
-//$$ import org.lwjgl.input.Keyboard;
+import org.lwjgl.input.Keyboard;
 //#if MC>=10800
-//$$ import com.google.common.base.Predicate;
+import com.google.common.base.Predicate;
 //#else
 //$$ import cpw.mods.fml.common.eventhandler.EventPriority;
 //$$ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -48,20 +48,20 @@ public class PlayerOverview extends EventRegistrations implements Extra {
             public void run() {
                 if (module.getReplayHandler() != null) {
                     //#if MC>=11400
-                    List<PlayerEntity> players = mod.getMinecraft().world.getPlayers()
-                            .stream()
-                            .map(it -> (PlayerEntity) it)
-                            .filter(it -> !(it instanceof CameraEntity))
-                            .collect(Collectors.toList());
+                    //$$ List<PlayerEntity> players = mod.getMinecraft().world.getPlayers()
+                    //$$         .stream()
+                    //$$         .map(it -> (PlayerEntity) it)
+                    //$$         .filter(it -> !(it instanceof CameraEntity))
+                    //$$         .collect(Collectors.toList());
                     //#else
-                    //$$ @SuppressWarnings("unchecked")
+                    @SuppressWarnings("unchecked")
                     //#if MC>=10800
-                    //$$ List<EntityPlayer> players = mod.getMinecraft().world.getPlayers(EntityPlayer.class, new Predicate() {
-                    //$$     @Override
-                    //$$     public boolean apply(Object input) {
-                    //$$         return !(input instanceof CameraEntity); // Exclude the camera entity
-                    //$$     }
-                    //$$ });
+                    List<EntityPlayer> players = mod.getMinecraft().world.getPlayers(EntityPlayer.class, new Predicate() {
+                        @Override
+                        public boolean apply(Object input) {
+                            return !(input instanceof CameraEntity); // Exclude the camera entity
+                        }
+                    });
                     //#else
                     //$$ List<EntityPlayer> players = mod.getMinecraft().theWorld.playerEntities;
                     //$$ players = players.stream()
@@ -71,7 +71,7 @@ public class PlayerOverview extends EventRegistrations implements Extra {
                     //#endif
                     if (!Utils.isCtrlDown()) {
                         // Hide all players that have an UUID v2 (commonly used for NPCs)
-                        Iterator<PlayerEntity> iter = players.iterator();
+                        Iterator<EntityPlayer> iter = players.iterator();
                         while (iter.hasNext()) {
                             UUID uuid = iter.next().getGameProfile().getId();
                             if (uuid != null && uuid.version() == 2) {
@@ -117,8 +117,8 @@ public class PlayerOverview extends EventRegistrations implements Extra {
 
     { on(PreRenderHandCallback.EVENT, this::shouldHideHand); }
     private boolean shouldHideHand() {
-        Entity view = module.getCore().getMinecraft().getCameraEntity();
-        return view != null && isHidden(view.getUuid());
+        Entity view = module.getCore().getMinecraft().getRenderViewEntity();
+        return view != null && isHidden(view.getUniqueID());
     }
 
     // See MixinRender for why this is 1.7.10 only

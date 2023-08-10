@@ -2,8 +2,8 @@ package com.replaymod.render.mixin;
 
 import com.replaymod.render.gui.progress.VirtualWindow;
 import com.replaymod.render.hooks.MinecraftClientExt;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.util.Window;
+import net.minecraft.client.Minecraft;
+import com.replaymod.core.versions.Window;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(MinecraftClient.class)
+@Mixin(Minecraft.class)
 public class Mixin_SuppressFramebufferResizeDuringRender implements MinecraftClientExt {
 
     @Unique
@@ -24,14 +24,14 @@ public class Mixin_SuppressFramebufferResizeDuringRender implements MinecraftCli
     }
 
     //#if MC>=11400
-    @Inject(method = "onResolutionChanged", at = @At("HEAD"), cancellable = true)
+    //$$ @Inject(method = "updateWindowSize", at = @At("HEAD"), cancellable = true)
     //#else
-    //$$ @Inject(method = "resize", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "resize", at = @At("HEAD"), cancellable = true)
     //#endif
     private void suppressResizeDuringRender(CallbackInfo ci) {
         VirtualWindow delegate = this.windowDelegate;
         if (delegate != null && delegate.isBound()) {
-            Window window = ((MinecraftClient) (Object) this).getWindow();
+            Window window = new com.replaymod.core.versions.Window(((Minecraft) (Object) this));
             delegate.onResolutionChanged(window.getFramebufferWidth(), window.getFramebufferHeight());
             ci.cancel();
         }

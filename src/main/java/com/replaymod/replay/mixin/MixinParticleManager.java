@@ -11,9 +11,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 //#if MC>=11600
-import net.minecraft.client.world.ClientWorld;
+//$$ import net.minecraft.client.world.ClientWorld;
 //#else
-//$$ import net.minecraft.world.World;
+import net.minecraft.world.World;
 //#endif
 
 import java.util.Queue;
@@ -21,7 +21,7 @@ import java.util.Queue;
 @Mixin(ParticleManager.class)
 public abstract class MixinParticleManager {
     @Final @Shadow
-    private Queue<Particle> newParticles;
+    private Queue<Particle> queueEntityFX;
 
     /**
      * This method additionally clears the queue of particles to be added when the world is changed.
@@ -31,15 +31,15 @@ public abstract class MixinParticleManager {
      * @param world The new world
      * @param ci Callback info
      */
-    @Inject(method = "setWorld", at = @At("HEAD"))
+    @Inject(method = "clearEffects(Lnet/minecraft/world/World;)V", at = @At("HEAD"))
     public void replayModReplay_clearParticleQueue(
             //#if MC>=11600
-            ClientWorld world,
+            //$$ ClientWorld world,
             //#else
-            //$$ World world,
+            World world,
             //#endif
             CallbackInfo ci) {
-        this.newParticles.clear();
+        this.queueEntityFX.clear();
     }
 }
 //#endif

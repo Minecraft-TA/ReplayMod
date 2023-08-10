@@ -24,8 +24,8 @@ import de.johni0702.minecraft.gui.utils.lwjgl.Dimension;
 import de.johni0702.minecraft.gui.utils.lwjgl.ReadableDimension;
 import de.johni0702.minecraft.gui.versions.Image;
 import de.johni0702.minecraft.gui.versions.MCVer;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.util.crash.CrashReport;
+import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.crash.CrashReport;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
@@ -33,7 +33,7 @@ import org.apache.logging.log4j.Logger;
 
 //#if MC>=11400
 //#else
-//$$ import org.lwjgl.input.Keyboard;
+import org.lwjgl.input.Keyboard;
 //#endif
 
 import javax.annotation.Nonnull;
@@ -224,9 +224,9 @@ public class Utils {
 
     public static boolean isCtrlDown() {
         //#if MC>=11400
-        return Screen.hasControlDown();
+        //$$ return Screen.hasControlDown();
         //#else
-        //$$ return Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL);
+        return Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL);
         //#endif
     }
 
@@ -246,7 +246,7 @@ public class Utils {
 
     public static GuiInfoPopup error(Logger logger, GuiContainer container, CrashReport crashReport, Runnable onClose) {
         // Convert crash report to string
-        String crashReportStr = crashReport.asString();
+        String crashReportStr = crashReport.getCompleteReport();
 
         // Log via logger
         logger.error(crashReportStr);
@@ -254,10 +254,10 @@ public class Utils {
         // Try to save the crash report
         if (crashReport.getFile() == null) {
             try {
-                File folder = new File(getMinecraft().runDirectory, "crash-reports");
+                File folder = new File(getMinecraft().mcDataDir, "crash-reports");
                 File file = new File(folder, "crash-" + (new SimpleDateFormat("yyyy-MM-dd_HH.mm.ss")).format(new Date()) + "-client.txt");
                 logger.debug("Saving crash report to file: {}", file);
-                crashReport.writeToFile(file);
+                crashReport.saveToFile(file);
             } catch (Throwable t) {
                 logger.error("Saving crash report file:", t);
             }

@@ -1,7 +1,7 @@
 package com.replaymod.core.mixin;
 
 import com.replaymod.core.versions.MCVer;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -9,84 +9,84 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 //#if MC>=11400
-import com.replaymod.core.events.PostRenderCallback;
-import com.replaymod.core.events.PreRenderCallback;
+//$$ import com.replaymod.core.events.PostRenderCallback;
+//$$ import com.replaymod.core.events.PreRenderCallback;
 //#else
-//$$ import org.spongepowered.asm.mixin.injection.Redirect;
-//$$ import com.replaymod.replay.InputReplayTimer;
-//$$ import org.lwjgl.input.Mouse;
+import org.spongepowered.asm.mixin.injection.Redirect;
+import com.replaymod.replay.InputReplayTimer;
+import org.lwjgl.input.Mouse;
 //#endif
 
 import java.io.IOException;
 
 //#if MC>=11400
-import net.minecraft.util.thread.ReentrantThreadExecutor;
+//$$ import net.minecraft.util.concurrent.RecursiveEventLoop;
 //#endif
 
-@Mixin(MinecraftClient.class)
+@Mixin(Minecraft.class)
 public abstract class MixinMinecraft
         //#if MC>=11400
-        extends ReentrantThreadExecutor<Runnable>
+        //$$ extends RecursiveEventLoop<Runnable>
         //#endif
         implements MCVer.MinecraftMethodAccessor {
     //#if MC>=11400
-    public MixinMinecraft(String string_1) { super(string_1); }
+    //$$ public MixinMinecraft(String string_1) { super(string_1); }
     //#endif
 
     //#if MC>=11400
-    @Shadow protected abstract void handleInputEvents();
-
-    @Override
-    public void replayModProcessKeyBinds() {
-        handleInputEvents();
-    }
-
+    //$$ @Shadow protected abstract void processKeyBinds();
+    //$$
+    //$$ @Override
+    //$$ public void replayModProcessKeyBinds() {
+    //$$     processKeyBinds();
+    //$$ }
+    //$$
     //#if MC>=11400
-    @Override
-    public void replayModExecuteTaskQueue() {
-        runTasks();
-    }
+    //$$ @Override
+    //$$ public void replayModExecuteTaskQueue() {
+    //$$     drainTasks();
+    //$$ }
     //#endif
-
-    @Inject(method = "render",
-            at = @At(value = "INVOKE",
-                    target = "Lnet/minecraft/client/render/GameRenderer;render(FJZ)V"))
-    private void preRender(boolean unused, CallbackInfo ci) {
-        PreRenderCallback.EVENT.invoker().preRender();
-    }
-
-    @Inject(method = "render",
-            at = @At(value = "INVOKE",
-                    target = "Lnet/minecraft/client/render/GameRenderer;render(FJZ)V",
-                    shift = At.Shift.AFTER))
-    private void postRender(boolean unused, CallbackInfo ci) {
-        PostRenderCallback.EVENT.invoker().postRender();
-    }
+    //$$
+    //$$ @Inject(method = "runGameLoop",
+    //$$         at = @At(value = "INVOKE",
+    //$$                 target = "Lnet/minecraft/client/renderer/GameRenderer;updateCameraAndRender(FJZ)V"))
+    //$$ private void preRender(boolean unused, CallbackInfo ci) {
+    //$$     PreRenderCallback.EVENT.invoker().preRender();
+    //$$ }
+    //$$
+    //$$ @Inject(method = "runGameLoop",
+    //$$         at = @At(value = "INVOKE",
+    //$$                 target = "Lnet/minecraft/client/renderer/GameRenderer;updateCameraAndRender(FJZ)V",
+    //$$                 shift = At.Shift.AFTER))
+    //$$ private void postRender(boolean unused, CallbackInfo ci) {
+    //$$     PostRenderCallback.EVENT.invoker().postRender();
+    //$$ }
     //#else
-    //$$ @Shadow long systemTime;
+    @Shadow long systemTime;
     //#if MC>=10904
-    //$$ @Shadow protected abstract void runTickKeyboard() throws IOException;
-    //$$ @Shadow protected abstract void runTickMouse() throws IOException;
-    //$$
-    //$$ @Override
-    //$$ public void replayModRunTickKeyboard() {
-    //$$     try {
-    //$$         runTickKeyboard();
-    //$$     } catch (IOException e) {
-    //$$         e.printStackTrace();
-    //$$     }
-    //$$ }
-    //$$
-    //$$ @Override
-    //$$ public void replayModRunTickMouse() {
-    //$$     try {
-    //$$         runTickMouse();
-    //$$         // Update last tick time (MC ignores inputs when there hasn't been a tick in 200ms)
-    //$$         systemTime = Minecraft.getSystemTime();
-    //$$     } catch (IOException e) {
-    //$$         e.printStackTrace();
-    //$$     }
-    //$$ }
+    @Shadow protected abstract void runTickKeyboard() throws IOException;
+    @Shadow protected abstract void runTickMouse() throws IOException;
+
+    @Override
+    public void replayModRunTickKeyboard() {
+        try {
+            runTickKeyboard();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void replayModRunTickMouse() {
+        try {
+            runTickMouse();
+            // Update last tick time (MC ignores inputs when there hasn't been a tick in 200ms)
+            systemTime = Minecraft.getSystemTime();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
     //#else
     //$$ private boolean earlyReturn;
     //$$
@@ -105,18 +105,18 @@ public abstract class MixinMinecraft
     //$$     }
     //$$ }
     //#endif
-    //$$ @Redirect(
+    @Redirect(
             //#if MC>=10904
-            //$$ method = "runTickMouse",
+            method = "runTickMouse",
             //#else
             //$$ method = "runTick",
             //#endif
-    //$$         at = @At(value = "INVOKE", target = "Lorg/lwjgl/input/Mouse;getEventDWheel()I", remap = false)
-    //$$ )
-    //$$ private int scroll() {
-    //$$     int wheel = Mouse.getEventDWheel();
-    //$$     InputReplayTimer.handleScroll(wheel);
-    //$$     return wheel;
-    //$$ }
+            at = @At(value = "INVOKE", target = "Lorg/lwjgl/input/Mouse;getEventDWheel()I", remap = false)
+    )
+    private int scroll() {
+        int wheel = Mouse.getEventDWheel();
+        InputReplayTimer.handleScroll(wheel);
+        return wheel;
+    }
     //#endif
 }

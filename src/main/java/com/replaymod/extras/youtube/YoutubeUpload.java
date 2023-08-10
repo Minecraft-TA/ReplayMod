@@ -7,7 +7,7 @@ import de.johni0702.minecraft.gui.container.AbstractGuiScreen;
 import de.johni0702.minecraft.gui.element.GuiButton;
 import de.johni0702.minecraft.gui.utils.EventRegistrations;
 import de.johni0702.minecraft.gui.versions.callbacks.InitScreenCallback;
-import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.GuiScreen;
 
 public class YoutubeUpload extends EventRegistrations implements Extra {
     @Override
@@ -16,7 +16,7 @@ public class YoutubeUpload extends EventRegistrations implements Extra {
     }
 
     { on(InitScreenCallback.EVENT, ((screen, buttons) -> onGuiOpen(screen))); }
-    private void onGuiOpen(Screen vanillaGui) {
+    private void onGuiOpen(GuiScreen vanillaGui) {
         AbstractGuiScreen<?> abstractScreen = de.johni0702.minecraft.gui.container.GuiScreen.from(vanillaGui);
         if (abstractScreen instanceof GuiRenderingDone) {
             GuiRenderingDone gui = (GuiRenderingDone) abstractScreen;

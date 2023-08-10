@@ -27,7 +27,7 @@ public class DMaterial {
                         0x10000 /* MA_TRANSP */ | 0x40 /* MA_ZTRANS */ | 0x80 /* MA_VERTEXCOLP */
                 );
                 material.setAlpha(1);
-                material.setRef(1);
+                material.setRef(1); //TODO removed
                 material.setR(1);
                 material.setG(1);
                 material.setB(1);

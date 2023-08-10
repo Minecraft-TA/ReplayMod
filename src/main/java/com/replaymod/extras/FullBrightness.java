@@ -12,9 +12,9 @@ import de.johni0702.minecraft.gui.element.GuiImage;
 import de.johni0702.minecraft.gui.element.IGuiImage;
 import de.johni0702.minecraft.gui.layout.HorizontalLayout;
 import de.johni0702.minecraft.gui.utils.EventRegistrations;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.client.Minecraft;
+import net.minecraft.potion.PotionEffect;
+import net.minecraft.init.MobEffects;
 
 public class FullBrightness extends EventRegistrations implements Extra {
     private ReplayMod core;
@@ -22,12 +22,12 @@ public class FullBrightness extends EventRegistrations implements Extra {
 
     private final IGuiImage indicator = new GuiImage().setTexture(ReplayMod.TEXTURE, 90, 20, 19, 16).setSize(19, 16);
 
-    private MinecraftClient mc;
+    private Minecraft mc;
     private boolean active;
     //#if MC>=11400
-    private double originalGamma;
+    //$$ private double originalGamma;
     //#else
-    //$$ private float originalGamma;
+    private float originalGamma;
     //#endif
 
     @Override
@@ -42,9 +42,9 @@ public class FullBrightness extends EventRegistrations implements Extra {
                 active = !active;
                 // need to tick once to update lightmap when replay is paused
                 //#if MC>=11400
-                mod.getMinecraft().gameRenderer.tick();
+                //$$ mod.getMinecraft().gameRenderer.tick();
                 //#else
-                //$$ mod.getMinecraft().entityRenderer.updateRenderer();
+                mod.getMinecraft().entityRenderer.updateRenderer();
                 //#endif
                 ReplayHandler replayHandler = module.getReplayHandler();
                 if (replayHandler != null) {
@@ -71,12 +71,12 @@ public class FullBrightness extends EventRegistrations implements Extra {
         if (active && module.getReplayHandler() != null) {
             Type type = getType();
             if (type == Type.Gamma || type == Type.Both) {
-                originalGamma = mc.options.gamma;
-                mc.options.gamma = 1000.0;
+                originalGamma = mc.gameSettings.gammaSetting;
+                mc.gameSettings.gammaSetting = (float) 1000.0;
             }
             if (type == Type.NightVision || type == Type.Both) {
                 if (mc.player != null) {
-                    mc.player.addStatusEffect(new StatusEffectInstance(StatusEffects.NIGHT_VISION
+                    mc.player.addPotionEffect(new PotionEffect(MobEffects.NIGHT_VISION
                             //#if MC<=10809
                             //$$ .id
                             //#endif
@@ -91,11 +91,11 @@ public class FullBrightness extends EventRegistrations implements Extra {
         if (active && module.getReplayHandler() != null) {
             Type type = getType();
             if (type == Type.Gamma || type == Type.Both) {
-                mc.options.gamma = originalGamma;
+                mc.gameSettings.gammaSetting = (float) originalGamma;
             }
             if (type == Type.NightVision || type == Type.Both) {
                 if (mc.player != null) {
-                    mc.player.removeStatusEffect(StatusEffects.NIGHT_VISION
+                    mc.player.removePotionEffect(MobEffects.NIGHT_VISION
                             //#if MC<=10809
                             //$$ .id
                             //#endif

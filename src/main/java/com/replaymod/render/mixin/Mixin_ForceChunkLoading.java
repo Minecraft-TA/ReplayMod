@@ -1,21 +1,31 @@
 package com.replaymod.render.mixin;
 
+//#if MC>=10800
 import com.replaymod.compat.shaders.ShaderReflection;
 import com.replaymod.render.hooks.ForceChunkLoadingHook;
 import com.replaymod.render.hooks.IForceChunkLoading;
-import net.minecraft.client.render.Camera;
-import net.minecraft.client.render.Frustum;
-import net.minecraft.client.render.WorldRenderer;
-import net.minecraft.client.render.chunk.ChunkBuilder;
+import net.minecraft.client.renderer.culling.ICamera;
+import net.minecraft.client.renderer.RenderGlobal;
+import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.Set;
+//#if MC>=11400
+//$$ import net.minecraft.client.renderer.ActiveRenderInfo;
+//#else
+import net.minecraft.entity.Entity;
+//#endif
 
-@Mixin(WorldRenderer.class)
+//#if MC<10904
+//$$ import net.minecraft.client.renderer.chunk.RenderChunk;
+//$$ import net.minecraft.util.BlockPos;
+//$$ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+//#endif
+
+@Mixin(RenderGlobal.class)
 public abstract class Mixin_ForceChunkLoading implements IForceChunkLoading {
     private ForceChunkLoadingHook replayModRender_hook;
 
@@ -24,54 +34,98 @@ public abstract class Mixin_ForceChunkLoading implements IForceChunkLoading {
         this.replayModRender_hook = hook;
     }
 
-    @Shadow private Set<ChunkBuilder.BuiltChunk> chunksToRebuild;
+    private boolean replayModRender_passThroughSetupTerrain;
 
-    @Shadow private ChunkBuilder chunkBuilder;
+    @Shadow
+    private boolean displayListEntitiesDirty;
 
-    @Shadow private boolean needsTerrainUpdate;
+    @Shadow
+    private ChunkRenderDispatcher renderDispatcher;
 
-    @Shadow protected abstract void setupTerrain(Camera camera_1, Frustum frustum_1, boolean boolean_1, int int_1, boolean boolean_2);
+    @Shadow
+    public abstract void setupTerrain(
+            //#if MC>=11400
+            //$$ ActiveRenderInfo viewEntity,
+            //#else
+            Entity viewEntity,
+            double partialTicks,
+            //#endif
+            ICamera camera,
+            int frameCount,
+            boolean playerSpectator
+    );
 
-    @Shadow private int frame;
-
-    private boolean passThrough;
     @Inject(method = "setupTerrain", at = @At("HEAD"), cancellable = true)
-    private void forceAllChunks(Camera camera_1, Frustum frustum_1, boolean boolean_1, int int_1, boolean boolean_2, CallbackInfo ci) throws IllegalAccessException {
-        if (replayModRender_hook == null) {
-            return;
-        }
-        if (passThrough) {
-            return;
-        }
+    private void replayModRender_setupTerrain(
+            //#if MC>=11400
+            //$$ ActiveRenderInfo viewEntity,
+            //#else
+            Entity viewEntity,
+            double partialTicks,
+            //#endif
+            ICamera camera,
+            int frameCount,
+            boolean playerSpectator,
+            CallbackInfo ci
+    ) throws IllegalAccessException {
         if (ShaderReflection.shaders_isShadowPass != null && (boolean) ShaderReflection.shaders_isShadowPass.get(null)) {
             return;
         }
-        ci.cancel();
+        if (replayModRender_hook != null && !replayModRender_passThroughSetupTerrain) {
+            replayModRender_passThroughSetupTerrain = true;
 
-        passThrough = true;
-        try {
             do {
-                // Determine which chunks shall be visible
-                setupTerrain(camera_1, frustum_1, boolean_1, frame++, boolean_2);
+                setupTerrain(
+                        viewEntity,
+                        //#if MC<11400
+                        partialTicks,
+                        //#endif
+                        camera,
+                        replayModRender_hook.nextFrameId(),
+                        playerSpectator
+                );
+                replayModRender_hook.updateChunks();
+            } while (this.displayListEntitiesDirty);
 
-                // Schedule all chunks which need rebuilding (we schedule even important rebuilds because we wait for
-                // all of them anyway and this way we can take advantage of threading)
-                for (ChunkBuilder.BuiltChunk builtChunk : this.chunksToRebuild) {
-                    // MC sometimes schedules invalid chunks when you're outside of loaded chunks (e.g. y > 256)
-                    if (builtChunk.shouldBuild()) {
-                        builtChunk.scheduleRebuild(this.chunkBuilder);
-                    }
-                    builtChunk.cancelRebuild();
-                }
-                this.chunksToRebuild.clear();
+            this.displayListEntitiesDirty = true;
 
-                // Upload all chunks
-                this.needsTerrainUpdate |= ((ForceChunkLoadingHook.IBlockOnChunkRebuilds) this.chunkBuilder).uploadEverythingBlocking();
+            replayModRender_passThroughSetupTerrain = false;
+            ci.cancel();
+        }
+    }
 
-                // Repeat until no more updates are needed
-            } while (this.needsTerrainUpdate);
-        } finally {
-            passThrough = false;
+    //#if MC<10904
+    //$$ @Inject(method = "isPositionInRenderChunk", at = @At("HEAD"), cancellable = true)
+    //$$ public void replayModRender_isPositionInRenderChunk(BlockPos pos, RenderChunk chunk, CallbackInfoReturnable<Boolean> ci) {
+    //$$     if (replayModRender_hook != null) {
+    //$$         ci.setReturnValue(true);
+    //$$     }
+    //$$ }
+    //#endif
+
+    @Inject(method = "updateChunks", at = @At("HEAD"), cancellable = true)
+    public void replayModRender_updateChunks(long finishTimeNano, CallbackInfo ci) {
+        if (replayModRender_hook != null) {
+            replayModRender_hook.updateChunks();
+            ci.cancel();
+        }
+    }
+
+    // Prior to 1.9.4, MC always uses the same ChunkRenderDispatcher instance
+    //#if MC>=10904
+    @Inject(method = "setWorldAndLoadRenderers(Lnet/minecraft/client/multiplayer/WorldClient;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/chunk/ChunkRenderDispatcher;stopWorkerThreads()V"))
+    private void stopWorkerThreadsAndChunkLoadingRenderGlobal(CallbackInfo ci) {
+        if (replayModRender_hook != null) {
+            replayModRender_hook.updateRenderDispatcher(null);
+        }
+    }
+    //#endif
+
+    @Inject(method = "loadRenderers", at = @At(value = "RETURN"))
+    private void setupChunkLoadingRenderGlobal(CallbackInfo ci) {
+        if (replayModRender_hook != null) {
+            replayModRender_hook.updateRenderDispatcher(this.renderDispatcher);
         }
     }
 }
+//#endif

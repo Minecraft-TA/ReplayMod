@@ -10,13 +10,13 @@ import java.util.List;
 import java.util.Set;
 
 //#if FABRIC
-import net.fabricmc.loader.api.FabricLoader;
+//$$ import net.fabricmc.loader.api.FabricLoader;
 //#endif
 
 //#if MC>=11400
-import java.io.InputStream;
+//$$ import java.io.InputStream;
 //#else
-//$$ import net.minecraft.launchwrapper.Launch;
+import net.minecraft.launchwrapper.Launch;
 //#endif
 
 //#if MC>=11200
@@ -28,18 +28,18 @@ import org.objectweb.asm.tree.ClassNode;
 public class ReplayModMixinConfigPlugin implements IMixinConfigPlugin {
     static boolean hasClass(String name) throws IOException {
         //#if MC>=11400
-        InputStream stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(name.replace('.', '/') + ".class");
-        if (stream != null) stream.close();
-        return stream != null;
+        //$$ InputStream stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(name.replace('.', '/') + ".class");
+        //$$ if (stream != null) stream.close();
+        //$$ return stream != null;
         //#else
-        //$$ return Launch.classLoader.getClassBytes(name) != null;
+        return Launch.classLoader.getClassBytes(name) != null;
         //#endif
     }
 
     private final Logger logger = LogManager.getLogger("replaymod/mixin");
     private final boolean hasOF = hasClass("optifine.OptiFineForgeTweaker") || hasClass("me.modmuss50.optifabric.mod.Optifabric");
     //#if FABRIC
-    private final boolean hasIris = FabricLoader.getInstance().isModLoaded("iris");
+    //$$ private final boolean hasIris = FabricLoader.getInstance().isModLoaded("iris");
     //#endif
 
     {
@@ -50,14 +50,14 @@ public class ReplayModMixinConfigPlugin implements IMixinConfigPlugin {
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
         if (hasOF) {
             //#if MC>=11500
-            // OF renames the lambda method name and I see no way we can target it now, so we give up on that patch
-            if (mixinClassName.endsWith("MixinTileEntityEndPortalRenderer")) return false;
+            //$$ // OF renames the lambda method name and I see no way we can target it now, so we give up on that patch
+            //$$ if (mixinClassName.endsWith("MixinTileEntityEndPortalRenderer")) return false;
             //#endif
         }
         if (mixinClassName.endsWith("_OF")) return hasOF;
         if (mixinClassName.endsWith("_NoOF")) return !hasOF;
         //#if FABRIC
-        if (mixinClassName.endsWith("_Iris")) return hasIris;
+        //$$ if (mixinClassName.endsWith("_Iris")) return hasIris;
         //#endif
         return true;
     }

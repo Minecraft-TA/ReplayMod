@@ -5,10 +5,10 @@ import com.replaymod.core.versions.MCVer;
 import com.replaymod.render.capturer.WorldRenderer;
 import com.replaymod.render.frame.BitmapFrame;
 import com.replaymod.render.processor.GlToAbsoluteDepthProcessor;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.util.crash.CrashException;
-import net.minecraft.util.crash.CrashReport;
-import org.lwjgl.glfw.GLFW;
+import net.minecraft.client.Minecraft;
+import net.minecraft.util.ReportedException;
+import net.minecraft.crash.CrashReport;
+import com.replaymod.core.versions.GLFW;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -37,7 +37,7 @@ public class Pipeline<R extends Frame, P extends Frame> implements Runnable {
         this.consumer = new ParallelSafeConsumer<>(consumer);
 
         float near = 0.05f;
-        float far = getMinecraft().options.viewDistance * 16 * 4;
+        float far = getMinecraft().gameSettings.renderDistanceChunks * 16 * 4;
         this.depthProcessor = new GlToAbsoluteDepthProcessor(near, far);
     }
 
@@ -60,9 +60,9 @@ public class Pipeline<R extends Frame, P extends Frame> implements Runnable {
                     }
                 }, new ThreadPoolExecutor.DiscardPolicy());
 
-        MinecraftClient mc = MCVer.getMinecraft();
+        Minecraft mc = MCVer.getMinecraft();
         while (!capturer.isDone() && !abort) {
-            if (GLFW.glfwWindowShouldClose(mc.getWindow().getHandle()) || ((MinecraftAccessor) mc).getCrashReporter() != null) {
+            if (GLFW.glfwWindowShouldClose(new com.replaymod.core.versions.Window(mc).getHandle()) || ((MinecraftAccessor) mc).getCrashReporter() != null) {
                 processService.shutdown();
                 return;
             }
@@ -85,8 +85,8 @@ public class Pipeline<R extends Frame, P extends Frame> implements Runnable {
             processor.close();
             consumer.close();
         } catch (Throwable t) {
-            CrashReport crashReport = CrashReport.create(t, "Cleaning up rendering pipeline");
-            throw new CrashException(crashReport);
+            CrashReport crashReport = CrashReport.makeCrashReport(t, "Cleaning up rendering pipeline");
+            throw new ReportedException(crashReport);
         }
     }
 
@@ -117,8 +117,8 @@ public class Pipeline<R extends Frame, P extends Frame> implements Runnable {
                 }
                 consumer.consume(processedChannels);
             } catch (Throwable t) {
-                CrashReport crashReport = CrashReport.create(t, "Processing frame");
-                MCVer.getMinecraft().setCrashReport(crashReport);
+                CrashReport crashReport = CrashReport.makeCrashReport(t, "Processing frame");
+                MCVer.getMinecraft().crashed(crashReport);
             }
         }
     }

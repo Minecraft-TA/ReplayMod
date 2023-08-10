@@ -17,22 +17,22 @@
     //$$ "Mixin_FixEntityNotTracking",
     //#endif
     //#if MC>=11600
-    "Mixin_MoveRealmsButton",
+    //$$ "Mixin_MoveRealmsButton",
     //#endif
     //#if MC>=11400
-    "MixinCamera",
-    "MixinInGameHud",
+    //$$ "MixinCamera",
+    //$$ "MixinInGameHud",
     //#else
-    //$$ "Mixin_FixHandOffsetTickDelta",
+    "Mixin_FixHandOffsetTickDelta",
     //#endif
     "ClientWorldAccessor",
     "EntityLivingBaseAccessor",
     //#if MC>=11400
-    "Mixin_ShowSpectatedHand_Iris",
-    "Mixin_ShowSpectatedHand_NoOF",
-    "Mixin_ShowSpectatedHand_OF",
+    //$$ "Mixin_ShowSpectatedHand_Iris",
+    //$$ "Mixin_ShowSpectatedHand_NoOF",
+    //$$ "Mixin_ShowSpectatedHand_OF",
     //#else
-    //$$ "EntityOtherPlayerMPAccessor",
+    "EntityOtherPlayerMPAccessor",
     //#endif
     "EntityPlayerAccessor",
     "FirstPersonRendererAccessor",
@@ -43,7 +43,7 @@
     "MixinGuiSpectator",
     "MixinRenderArrow",
     //#if MC<11400
-    //$$ "MixinRenderManager",
+    "MixinRenderManager",
     //#endif
     "MixinViewFrustum",
     //#else

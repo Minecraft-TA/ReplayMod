@@ -12,11 +12,11 @@ import de.johni0702.minecraft.gui.layout.CustomLayout;
 import de.johni0702.minecraft.gui.layout.HorizontalLayout;
 import de.johni0702.minecraft.gui.utils.EventRegistrations;
 import de.johni0702.minecraft.gui.versions.callbacks.InitScreenCallback;
-import net.minecraft.client.gui.screen.GameMenuScreen;
-import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.GuiIngameMenu;
+import net.minecraft.client.gui.GuiScreen;
 
 //#if MC>=11400
-import net.minecraft.client.gui.widget.AbstractButtonWidget;
+//$$ import net.minecraft.client.gui.widget.Widget;
 //#endif
 
 import java.util.Collection;
@@ -77,14 +77,14 @@ public class GuiRecordingControls extends EventRegistrations {
     }
 
     { on(InitScreenCallback.EVENT, this::injectIntoIngameMenu); }
-    private void injectIntoIngameMenu(Screen guiScreen,
+    private void injectIntoIngameMenu(GuiScreen guiScreen,
                                       //#if MC>=11400
-                                      Collection<AbstractButtonWidget> buttonList
+                                      //$$ Collection<Widget> buttonList
                                       //#else
-                                      //$$ Collection<net.minecraft.client.gui.GuiButton> buttonList
+                                      Collection<net.minecraft.client.gui.GuiButton> buttonList
                                       //#endif
     ) {
-        if (!(guiScreen instanceof GameMenuScreen)) {
+        if (!(guiScreen instanceof GuiIngameMenu)) {
             return;
         }
         if (buttonList.isEmpty()) {

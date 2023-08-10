@@ -8,15 +8,15 @@ import com.replaymod.render.hooks.ForceChunkLoadingHook;
 import com.replaymod.render.rendering.Pipelines;
 import de.johni0702.minecraft.gui.utils.lwjgl.Dimension;
 import de.johni0702.minecraft.gui.utils.lwjgl.ReadableDimension;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.util.Window;
-import net.minecraft.util.crash.CrashReport;
+import net.minecraft.client.Minecraft;
+import com.replaymod.core.versions.Window;
+import net.minecraft.crash.CrashReport;
 
 import static com.replaymod.core.versions.MCVer.resizeMainWindow;
 
 public class ScreenshotRenderer implements RenderInfo {
 
-    private final MinecraftClient mc = MCVer.getMinecraft();
+    private final Minecraft mc = MCVer.getMinecraft();
 
     private final RenderSettings settings;
 
@@ -28,11 +28,11 @@ public class ScreenshotRenderer implements RenderInfo {
 
     public boolean renderScreenshot() throws Throwable {
         try {
-            Window window = mc.getWindow();
+            Window window = new com.replaymod.core.versions.Window(mc);
             int widthBefore = window.getFramebufferWidth();
             int heightBefore = window.getFramebufferHeight();
 
-            ForceChunkLoadingHook clrg = new ForceChunkLoadingHook(mc.worldRenderer);
+            ForceChunkLoadingHook clrg = new ForceChunkLoadingHook(mc.renderGlobal);
 
             if (settings.getRenderMethod() == RenderSettings.RenderMethod.BLEND) {
                 BlendState.setState(new BlendState(settings.getOutputFile()));
@@ -48,8 +48,8 @@ public class ScreenshotRenderer implements RenderInfo {
             return true;
         } catch (OutOfMemoryError e) {
             e.printStackTrace();
-            CrashReport report = CrashReport.create(e, "Creating Equirectangular Screenshot");
-            MCVer.getMinecraft().setCrashReport(report);
+            CrashReport report = CrashReport.makeCrashReport(e, "Creating Equirectangular Screenshot");
+            MCVer.getMinecraft().crashed(report);
         }
         return false;
     }
@@ -73,7 +73,7 @@ public class ScreenshotRenderer implements RenderInfo {
     @Override
     public float updateForNextFrame() {
         framesDone++;
-        return mc.getTickDelta();
+        return mc.getRenderPartialTicks();
     }
 
     @Override

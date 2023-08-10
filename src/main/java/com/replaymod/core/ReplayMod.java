@@ -17,14 +17,14 @@ import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVe
 import com.replaymod.replaystudio.studio.ReplayStudio;
 import com.replaymod.replaystudio.util.I18n;
 import com.replaymod.simplepathing.ReplayModSimplePathing;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.resource.DirectoryResourcePack;
-import net.minecraft.text.LiteralText;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.text.TranslatableText;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.FolderResourcePack;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.Style;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.util.text.TextFormatting;
+import net.minecraft.util.ResourceLocation;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -38,18 +38,18 @@ import java.util.concurrent.TimeoutException;
 
 //#if MC>=11900
 //#else
-import net.minecraft.client.options.Option;
+import net.minecraft.client.settings.GameSettings.Options;
 //#endif
 
 public class ReplayMod implements Module, Scheduler {
 
     public static final String MOD_ID = "replaymod";
 
-    public static final Identifier TEXTURE = new Identifier("replaymod", "replay_gui.png");
+    public static final ResourceLocation TEXTURE = new ResourceLocation("replaymod", "replay_gui.png");
     public static final int TEXTURE_SIZE = 256;
-    public static final Identifier LOGO_FAVICON = new Identifier("replaymod", "favicon_logo.png");
+    public static final ResourceLocation LOGO_FAVICON = new ResourceLocation("replaymod", "favicon_logo.png");
 
-    private static final MinecraftClient mc = MCVer.getMinecraft();
+    private static final Minecraft mc = MCVer.getMinecraft();
 
     private final ReplayModBackend backend;
     private final SchedulerImpl scheduler = new SchedulerImpl();
@@ -81,7 +81,7 @@ public class ReplayMod implements Module, Scheduler {
     public ReplayMod(ReplayModBackend backend) {
         this.backend = backend;
 
-        I18n.setI18n(net.minecraft.client.resource.language.I18n::translate);
+        I18n.setI18n(net.minecraft.client.resources.I18n::format);
 
         // Check Minecraft protocol version for compatibility
         if (!ProtocolVersion.isRegistered(MCVer.getProtocolVersion()) && !Boolean.parseBoolean(System.getProperty("replaymod.skipversioncheck", "false"))) {
@@ -110,9 +110,9 @@ public class ReplayMod implements Module, Scheduler {
         return settingsRegistry;
     }
 
-    public static final DirectoryResourcePack jGuiResourcePack = createJGuiResourcePack();
+    public static final FolderResourcePack jGuiResourcePack = createJGuiResourcePack();
     public static final String JGUI_RESOURCE_PACK_NAME = "replaymod_jgui";
-    private static DirectoryResourcePack createJGuiResourcePack() {
+    private static FolderResourcePack createJGuiResourcePack() {
         File folder = new File("../jGui/src/main/resources");
         if (!folder.exists()) {
             folder = new File("../../../jGui/src/main/resources");
@@ -123,13 +123,13 @@ public class ReplayMod implements Module, Scheduler {
         //#if MC>=11903
         //$$ return new DirectoryResourcePack(JGUI_RESOURCE_PACK_NAME, folder.toPath(), true) {
         //#else
-        return new DirectoryResourcePack(folder) {
+        return new FolderResourcePack(folder) {
         //#endif
             @Override
             //#if MC>=11400
-            public String getName() {
+            //$$ public String getName() {
             //#else
-            //$$ public String getPackName() {
+            public String getPackName() {
             //#endif
                 return JGUI_RESOURCE_PACK_NAME;
             }
@@ -144,9 +144,9 @@ public class ReplayMod implements Module, Scheduler {
             //$$ }
             //#else
             @Override
-            protected InputStream openFile(String resourceName) throws IOException {
+            protected InputStream getInputStreamByName(String resourceName) throws IOException {
                 try {
-                    return super.openFile(resourceName);
+                    return super.getInputStreamByName(resourceName);
                 } catch (IOException e) {
                     if ("pack.mcmeta".equals(resourceName)) {
                         return new ByteArrayInputStream(generatePackMeta());
@@ -158,9 +158,9 @@ public class ReplayMod implements Module, Scheduler {
 
             private byte[] generatePackMeta() {
                 //#if MC>=11400
-                int version = 4;
+                //$$ int version = 4;
                 //#else
-                //$$ int version = 1;
+                int version = 1;
                 //#endif
                 return ("{\"pack\": {\"description\": \"dummy pack for jGui resources in dev-env\", \"pack_format\": "
                         + version + "}}").getBytes(StandardCharsets.UTF_8);
@@ -190,7 +190,7 @@ public class ReplayMod implements Module, Scheduler {
         // Post 1.19 this has become non-trivial to do, install Sodium+Bobby or OptiFine if you need it
         //#if MC>=10800 && MC<11900
         if (!MCVer.hasOptifine()) {
-            Option.RENDER_DISTANCE.setMax(64f);
+            Options.RENDER_DISTANCE.setValueMax(64f);
         }
         //#endif
 
@@ -234,7 +234,7 @@ public class ReplayMod implements Module, Scheduler {
         return backend.isModLoaded(id);
     }
 
-    public MinecraftClient getMinecraft() {
+    public Minecraft getMinecraft() {
         return mc;
     }
 
@@ -251,18 +251,18 @@ public class ReplayMod implements Module, Scheduler {
             // Some nostalgia: "§8[§6Replay Mod§8]§r Your message goes here"
             //#if MC>=10904
             //#if MC>=11600
-            Style coloredDarkGray = Style.EMPTY.withColor(Formatting.DARK_GRAY);
-            Style coloredGold = Style.EMPTY.withColor(Formatting.GOLD);
-            Style alert = Style.EMPTY.withColor(warning ? Formatting.RED : Formatting.DARK_GREEN);
+            //$$ Style coloredDarkGray = Style.EMPTY.withColor(Formatting.DARK_GRAY);
+            //$$ Style coloredGold = Style.EMPTY.withColor(Formatting.GOLD);
+            //$$ Style alert = Style.EMPTY.withColor(warning ? Formatting.RED : Formatting.DARK_GREEN);
             //#else
-            //$$ Style coloredDarkGray = new Style().setColor(Formatting.DARK_GRAY);
-            //$$ Style coloredGold = new Style().setColor(Formatting.GOLD);
-            //$$ Style alert = new Style().setColor(warning ? Formatting.RED : Formatting.DARK_GREEN);
+            Style coloredDarkGray = new Style().setColor(TextFormatting.DARK_GRAY);
+            Style coloredGold = new Style().setColor(TextFormatting.GOLD);
+            Style alert = new Style().setColor(warning ? TextFormatting.RED : TextFormatting.DARK_GREEN);
             //#endif
-            Text text = new LiteralText("[").setStyle(coloredDarkGray)
-                    .append(new TranslatableText("replaymod.title").setStyle(coloredGold))
-                    .append(new LiteralText("] "))
-                    .append(new TranslatableText(message, args).setStyle(alert));
+            ITextComponent text = new TextComponentString("[").setStyle(coloredDarkGray)
+                    .appendSibling(new TextComponentTranslation("replaymod.title").setStyle(coloredGold))
+                    .appendSibling(new TextComponentString("] "))
+                    .appendSibling(new TextComponentTranslation(message, args).setStyle(alert));
             //#else
             //$$ ChatStyle coloredDarkGray = new ChatStyle().setColor(EnumChatFormatting.DARK_GRAY);
             //$$ ChatStyle coloredGold = new ChatStyle().setColor(EnumChatFormatting.GOLD);
@@ -274,7 +274,7 @@ public class ReplayMod implements Module, Scheduler {
             //#endif
             // Send message to chat GUI
             // The ingame GUI is initialized at startup, therefore this is possible before the client is connected
-            mc.inGameHud.getChatHud().addMessage(text);
+            mc.ingameGUI.getChatGUI().printChatMessage(text);
         }
     }
 

@@ -2,51 +2,51 @@ package com.replaymod.pathing.player;
 
 import com.replaymod.core.utils.WrappedTimer;
 import de.johni0702.minecraft.gui.utils.Event;
-import net.minecraft.client.render.RenderTickCounter;
+import net.minecraft.util.Timer;
 
 /**
  * Wrapper around the current timer that prevents the timer from advancing by itself.
  */
 public class ReplayTimer extends WrappedTimer {
     //#if MC>=11400
-    private final RenderTickCounter state = new RenderTickCounter(0, 0);
+    //$$ private final Timer state = new Timer(0, 0);
     //#else
-    //$$ private final Timer state = new Timer(0);
+    private final Timer state = new Timer(0);
     //#endif
 
     //#if MC>=11600
-    public int ticksThisFrame;
+    //$$ public int ticksThisFrame;
     //#endif
 
-    public ReplayTimer(RenderTickCounter wrapped) {
+    public ReplayTimer(Timer wrapped) {
         super(wrapped);
     }
 
     @Override
     // This should be handled by Remap but it isn't (was handled before a9724e3).
     //#if MC>=11400
-    public
+    //$$ public
     //#if MC>=11600
-    int
+    //$$ int
     //#else
     //$$ void
     //#endif
-    beginRenderTick(
+    //$$ updateTimer(
     //#else
-    //$$ public void updateTimer(
+    public void updateTimer(
     //#endif
             //#if MC>=11400
-            long sysClock
+            //$$ long sysClock
             //#endif
     ) {
         copy(this, state); // Save our current state
         try {
             //#if MC>=11600
-            ticksThisFrame =
+            //$$ ticksThisFrame =
             //#endif
-            wrapped.beginRenderTick(
+            wrapped.updateTimer(
                     //#if MC>=11400
-                    sysClock
+                    //$$ sysClock
                     //#endif
             ); // Update current state
         } finally {
@@ -54,11 +54,11 @@ public class ReplayTimer extends WrappedTimer {
             UpdatedCallback.EVENT.invoker().onUpdate();
         }
         //#if MC>=11600
-        return ticksThisFrame;
+        //$$ return ticksThisFrame;
         //#endif
     }
 
-    public RenderTickCounter getWrapped() {
+    public Timer getWrapped() {
         return wrapped;
     }
 

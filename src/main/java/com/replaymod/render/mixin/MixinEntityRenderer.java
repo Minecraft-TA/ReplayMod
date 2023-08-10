@@ -1,10 +1,10 @@
 package com.replaymod.render.mixin;
 
 import com.replaymod.render.hooks.EntityRendererHandler;
-import net.minecraft.client.render.GameRenderer;
+import net.minecraft.client.renderer.EntityRenderer;
 import org.spongepowered.asm.mixin.Mixin;
 
-@Mixin(GameRenderer.class)
+@Mixin(EntityRenderer.class)
 public abstract class MixinEntityRenderer implements EntityRendererHandler.IEntityRenderer {
     private EntityRendererHandler replayModRender_handler;
 

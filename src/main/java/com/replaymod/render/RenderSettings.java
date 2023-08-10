@@ -6,9 +6,9 @@ import com.replaymod.core.utils.FileTypeAdapter;
 import com.replaymod.core.versions.MCVer;
 import de.johni0702.minecraft.gui.utils.lwjgl.Color;
 import de.johni0702.minecraft.gui.utils.lwjgl.ReadableColor;
-import net.minecraft.client.resource.language.I18n;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.util.Util;
-import org.apache.maven.artifact.versioning.ComparableVersion;
+import net.minecraftforge.fml.common.versioning.ComparableVersion;
 
 import java.io.File;
 import java.io.IOException;
@@ -29,11 +29,11 @@ public class RenderSettings {
 
         @Override
         public String toString() {
-            return I18n.translate("replaymod.gui.rendersettings.renderer." + name().toLowerCase());
+            return I18n.format("replaymod.gui.rendersettings.renderer." + name().toLowerCase());
         }
 
         public String getDescription() {
-            return I18n.translate("replaymod.gui.rendersettings.renderer." + name().toLowerCase() + ".description");
+            return I18n.format("replaymod.gui.rendersettings.renderer." + name().toLowerCase() + ".description");
         }
 
         public boolean isSpherical() {
@@ -47,9 +47,9 @@ public class RenderSettings {
         @SuppressWarnings("RedundantIfStatement")
         public boolean isSupported() {
             //#if MC<10800 || MC>=11500
-            if (this == BLEND) {
-                return false;
-            }
+            //$$ if (this == BLEND) {
+            //$$     return false;
+            //$$ }
             //#endif
 
             return true;
@@ -99,7 +99,7 @@ public class RenderSettings {
 
         @Override
         public String toString() {
-            return I18n.translate("replaymod.gui.rendersettings.presets." + name().replace('_', '.').toLowerCase());
+            return I18n.format("replaymod.gui.rendersettings.presets." + name().replace('_', '.').toLowerCase());
         }
 
         public boolean isSupported() {
@@ -130,7 +130,7 @@ public class RenderSettings {
 
         @Override
         public String toString() {
-            return I18n.translate("replaymod.gui.rendersettings.antialiasing." + name().toLowerCase());
+            return I18n.format("replaymod.gui.rendersettings.antialiasing." + name().toLowerCase());
         }
     }
 
@@ -314,10 +314,10 @@ public class RenderSettings {
     }
 
     private static String findFFmpeg() {
-        switch (Util.getOperatingSystem()) {
+        switch (Util.getOSType()) {
             case WINDOWS:
                 // Allow windows users to unpack the ffmpeg archive into a sub-folder of their .minecraft folder
-                File dotMinecraft = MCVer.getMinecraft().runDirectory;
+                File dotMinecraft = MCVer.getMinecraft().mcDataDir;
                 File inDotMinecraft = new File(dotMinecraft, "ffmpeg/bin/ffmpeg.exe");
                 if (inDotMinecraft.exists()) {
                     LOGGER.debug("FFmpeg found in .minecraft/ffmpeg");

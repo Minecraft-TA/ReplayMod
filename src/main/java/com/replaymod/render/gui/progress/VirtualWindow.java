@@ -3,16 +3,16 @@ package com.replaymod.render.gui.progress;
 import com.replaymod.render.hooks.MinecraftClientExt;
 import com.replaymod.render.mixin.MainWindowAccessor;
 import de.johni0702.minecraft.gui.function.Closeable;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gl.Framebuffer;
-import net.minecraft.client.util.Window;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.shader.Framebuffer;
+import com.replaymod.core.versions.Window;
 
 //#if MC>=11700
 //$$ import net.minecraft.client.gl.WindowFramebuffer;
 //#endif
 
 public class VirtualWindow implements Closeable {
-    private final MinecraftClient mc;
+    private final Minecraft mc;
     private final Window window;
     private final MainWindowAccessor acc;
 
@@ -23,9 +23,9 @@ public class VirtualWindow implements Closeable {
     private int gameWidth, gameHeight;
 
 
-    public VirtualWindow(MinecraftClient mc) {
+    public VirtualWindow(Minecraft mc) {
         this.mc = mc;
-        this.window = mc.getWindow();
+        this.window = new com.replaymod.core.versions.Window(mc);
         this.acc = (MainWindowAccessor) (Object) this.window;
 
         framebufferWidth = acc.getFramebufferWidth();
@@ -36,7 +36,7 @@ public class VirtualWindow implements Closeable {
         //#else
         guiFramebuffer = new Framebuffer(framebufferWidth, framebufferHeight, true
                 //#if MC>=11400
-                , false
+                //$$ , false
                 //#endif
         );
         //#endif
@@ -46,7 +46,7 @@ public class VirtualWindow implements Closeable {
 
     @Override
     public void close() {
-        guiFramebuffer.delete();
+        guiFramebuffer.deleteFramebuffer();
 
         MinecraftClientExt.get(mc).setWindowDelegate(null);
     }
@@ -68,24 +68,24 @@ public class VirtualWindow implements Closeable {
     }
 
     public void beginWrite() {
-        guiFramebuffer.beginWrite(true);
+        guiFramebuffer.bindFramebuffer(true);
     }
 
     public void endWrite() {
-        guiFramebuffer.endWrite();
+        guiFramebuffer.unbindFramebuffer();
     }
 
     public void flip() {
-        guiFramebuffer.draw(framebufferWidth, framebufferHeight);
+        guiFramebuffer.framebufferRender(framebufferWidth, framebufferHeight);
 
         //#if MC>=11500
-        window.swapBuffers();
+        //$$ window.swapBuffers();
         //#else
         //#if MC>=11400
-        //$$ window.setFullscreen(false);
+        //$$ window.update(false);
         //#else
         //#if MC>=10800
-        //$$ mc.updateDisplay();
+        mc.updateDisplay();
         //#else
         //$$ mc.resetSize();
         //#endif
@@ -111,26 +111,26 @@ public class VirtualWindow implements Closeable {
         framebufferHeight = newHeight;
 
         //#if MC>=11400
-        guiFramebuffer.resize(newWidth, newHeight
+        //$$ guiFramebuffer.func_216491_a(newWidth, newHeight
                 //#if MC>=11400
-                , false
+                //$$ , false
                 //#endif
-        );
+        //$$ );
         //#else
-        //$$ guiFramebuffer.createBindFramebuffer(newWidth, newHeight);
+        guiFramebuffer.createBindFramebuffer(newWidth, newHeight);
         //#endif
 
         applyScaleFactor();
         if (mc.currentScreen != null) {
-            mc.currentScreen.resize(mc, window.getScaledWidth(), window.getScaledHeight());
+            mc.currentScreen.onResize(mc, window.getScaledWidth(), window.getScaledHeight());
         }
     }
 
     private void applyScaleFactor() {
         //#if MC>=11400
-        window.setScaleFactor(window.calculateScaleFactor(mc.options.guiScale, mc.forcesUnicodeFont()));
+        //$$ window.setGuiScale(window.calcGuiScale(mc.gameSettings.guiScale, mc.getForceUnicodeFont()));
         //#else
-        //$$ // Nothing to do, ScaledResolution re-computes the scale factor every time it is created
+        // Nothing to do, ScaledResolution re-computes the scale factor every time it is created
         //#endif
     }
 

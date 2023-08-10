@@ -21,7 +21,7 @@ public class GuiBackgroundProcesses extends EventRegistrations {
     private boolean reentrant;
 
     { on(InitScreenCallback.EVENT, (screen, buttons) -> onGuiInit(screen)); }
-    private void onGuiInit(net.minecraft.client.gui.screen.Screen guiScreen) {
+    private void onGuiInit(net.minecraft.client.gui.GuiScreen guiScreen) {
         if (guiScreen != getMinecraft().currentScreen) return; // people tend to construct GuiScreens without opening them
 
         VanillaGuiScreen vanillaGui;

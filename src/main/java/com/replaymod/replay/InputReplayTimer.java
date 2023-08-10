@@ -6,22 +6,22 @@ import com.replaymod.core.versions.MCVer;
 import com.replaymod.replay.camera.CameraController;
 import com.replaymod.replay.camera.CameraEntity;
 import de.johni0702.minecraft.gui.versions.ScreenExt;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.RenderTickCounter;
+import net.minecraft.client.Minecraft;
+import net.minecraft.util.Timer;
 
 //#if MC>=11802
 //$$ import net.minecraft.client.gui.screen.DownloadingTerrainScreen;
 //#endif
 
 //#if MC>=11400
-import org.lwjgl.glfw.GLFW;
+//$$ import org.lwjgl.glfw.GLFW;
 //#else
-//$$ import net.minecraft.client.settings.KeyBinding;
-//$$ import net.minecraftforge.client.ForgeHooksClient;
-//$$ import org.lwjgl.input.Mouse;
-//$$ import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraft.client.settings.KeyBinding;
+import net.minecraftforge.client.ForgeHooksClient;
+import org.lwjgl.input.Mouse;
+import net.minecraftforge.fml.common.FMLCommonHandler;
 //#if MC>=10800
-//$$ import java.io.IOException;
+import java.io.IOException;
 //#else
 //$$ import com.replaymod.replay.gui.screen.GuiOpeningReplay;
 //$$ import net.minecraft.client.renderer.entity.RenderManager;
@@ -35,9 +35,9 @@ import org.lwjgl.glfw.GLFW;
 
 public class InputReplayTimer extends WrappedTimer {
     private final ReplayModReplay mod;
-    private final MinecraftClient mc;
+    private final Minecraft mc;
     
-    public InputReplayTimer(RenderTickCounter wrapped, ReplayModReplay mod) {
+    public InputReplayTimer(Timer wrapped, ReplayModReplay mod) {
         super(wrapped);
         this.mod = mod;
         this.mc = mod.getCore().getMinecraft();
@@ -46,21 +46,21 @@ public class InputReplayTimer extends WrappedTimer {
     @Override
     public
     //#if MC>=11600
-    int
+    //$$ int
     //#else
-    //$$ void
+    void
     //#endif
-    beginRenderTick(
+    updateTimer(
             //#if MC>=11400
-            long sysClock
+            //$$ long sysClock
             //#endif
     ) {
         //#if MC>=11600
-        int ticksThisFrame =
+        //$$ int ticksThisFrame =
         //#endif
-        super.beginRenderTick(
+        super.updateTimer(
                 //#if MC>=11400
-                sysClock
+                //$$ sysClock
                 //#endif
         );
 
@@ -79,27 +79,27 @@ public class InputReplayTimer extends WrappedTimer {
         // tick speed may vary or there may not be any ticks at all (when the replay is paused)
         if (mod.getReplayHandler() != null && mc.world != null && mc.player != null) {
             //#if MC>=11400
-            if (mc.currentScreen == null || ((ScreenExt) mc.currentScreen).doesPassEvents()) {
-                GLFW.glfwPollEvents();
-                MCVer.processKeyBinds();
-            }
-            mc.keyboard.pollDebugCrash();
+            //$$ if (mc.currentScreen == null || ((ScreenExt) mc.currentScreen).doesPassEvents()) {
+            //$$     GLFW.glfwPollEvents();
+            //$$     MCVer.processKeyBinds();
+            //$$ }
+            //$$ mc.keyboardListener.tick();
             //#else
-            //$$ if (mc.currentScreen != null) {
+            if (mc.currentScreen != null) {
                 //#if MC>=10800
-                //$$ try {
-                //$$     mc.currentScreen.handleInput();
-                //$$ } catch (IOException e) { // *SIGH*
-                //$$     e.printStackTrace();
-                //$$ }
+                try {
+                    mc.currentScreen.handleInput();
+                } catch (IOException e) { // *SIGH*
+                    e.printStackTrace();
+                }
                 //#else
                 //$$ mc.currentScreen.handleInput();
                 //#endif
-            //$$ }
-            //$$ if (mc.currentScreen == null || mc.currentScreen.allowUserInput) {
+            }
+            if (mc.currentScreen == null || mc.currentScreen.allowUserInput) {
                 //#if MC>=10904
-                //$$ ((MCVer.MinecraftMethodAccessor) mc).replayModRunTickMouse();
-                //$$ ((MCVer.MinecraftMethodAccessor) mc).replayModRunTickKeyboard();
+                ((MCVer.MinecraftMethodAccessor) mc).replayModRunTickMouse();
+                ((MCVer.MinecraftMethodAccessor) mc).replayModRunTickKeyboard();
                 //#else
                 //$$ // 1.8.9 and below has one giant tick function, so we try to only do keyboard & mouse as far as possible
                 //$$ ((MCVer.MinecraftMethodAccessor) mc).replayModSetEarlyReturnFromRunTick(true);
@@ -114,7 +114,7 @@ public class InputReplayTimer extends WrappedTimer {
                 //#endif
                 //$$ ((MCVer.MinecraftMethodAccessor) mc).replayModSetEarlyReturnFromRunTick(false);
                 //#endif
-            //$$ }
+            }
             //#endif
 
             //#if MC>=11802
@@ -127,7 +127,7 @@ public class InputReplayTimer extends WrappedTimer {
 
         }
         //#if MC>=11600
-        return ticksThisFrame;
+        //$$ return ticksThisFrame;
         //#endif
     }
 

@@ -1,42 +1,52 @@
 package com.replaymod.core.versions.scheduler;
 
+import com.google.common.util.concurrent.ListenableFutureTask;
 import com.replaymod.core.mixin.MinecraftAccessor;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.util.crash.CrashException;
-import net.minecraft.util.thread.ReentrantThreadExecutor;
+import net.minecraft.client.Minecraft;
+import net.minecraft.util.ReportedException;
+import net.minecraftforge.fml.common.eventhandler.EventBus;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
 
+import java.util.Queue;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+//#if MC>=10809
+import net.minecraftforge.common.MinecraftForge;
+//#else
+//$$ import net.minecraftforge.fml.common.FMLCommonHandler;
+//#endif
+
+//#if MC<10800
+//$$ import java.util.ArrayDeque;
+//#endif
+
 public class SchedulerImpl implements  Scheduler {
-    private static final MinecraftClient mc = MinecraftClient.getInstance();
+    private static final Minecraft mc = Minecraft.getMinecraft();
+
+    //#if MC>=10809
+    private static final EventBus FML_BUS = MinecraftForge.EVENT_BUS;
+    //#else
+    //$$ private static final EventBus FML_BUS = FMLCommonHandler.instance().bus();
+    //#endif
 
     @Override
     public void runSync(Runnable runnable) throws InterruptedException, ExecutionException, TimeoutException {
-        if (mc.isOnThread()) {
+        if (mc.isCallingFromMinecraftThread()) {
             runnable.run();
         } else {
-            executor.submit(() -> {
-                runnable.run();
-                return null;
-            }).get(30, TimeUnit.SECONDS);
+            FutureTask<Void> future = new FutureTask<>(runnable, null);
+            runLater(future);
+            future.get(30, TimeUnit.SECONDS);
         }
     }
 
     @Override
     public void runPostStartup(Runnable runnable) {
-        runLater(new Runnable() {
-            @Override
-            public void run() {
-                if (mc.getOverlay() != null) {
-                    // delay until after resources have been loaded
-                    runLater(this);
-                    return;
-                }
-                runnable.run();
-            }
-        });
+        runLater(runnable);
     }
 
     /**
@@ -45,80 +55,88 @@ public class SchedulerImpl implements  Scheduler {
      * processed, otherwise a livelock may occur.
      */
     private boolean inRunLater = false;
-    private boolean inRenderTaskQueue = false;
-    // Starting 1.14 MC clears the queue of scheduled tasks on disconnect.
-    // This works fine for MC since it uses the queue only for packet handling but breaks our assumption that
-    // stuff submitted via runLater is actually always run (e.g. recording might not be fully stopped because parts
-    // of that are run via runLater and stopping the recording happens right around the time MC clears the queue).
-    // Luckily, that's also the version where MC pulled out the executor implementation, so we can just spin up our own.
-    public static class ReplayModExecutor extends ReentrantThreadExecutor<Runnable> {
-        private final Thread mcThread = Thread.currentThread();
-
-        private ReplayModExecutor(String string_1) {
-            super(string_1);
-        }
-
-        @Override
-        protected Runnable createTask(Runnable runnable) {
-            return runnable;
-        }
-
-        @Override
-        protected boolean canExecute(Runnable runnable) {
-            return true;
-        }
-
-        @Override
-        protected Thread getThread() {
-            return mcThread;
-        }
-
-        @Override
-        public void runTasks() {
-            super.runTasks();
-        }
-    }
-    public final ReplayModExecutor executor = new ReplayModExecutor("Client/ReplayMod");
-
-    @Override
-    public void runTasks() {
-        executor.runTasks();
-    }
 
     @Override
     public void runLaterWithoutLock(Runnable runnable) {
-        // MC 1.14+ no longer synchronizes on the queue while running its tasks
-        runLater(runnable);
+        runLater(() -> runLaterWithoutLock(runnable), runnable);
     }
 
-    @Override
     public void runLater(Runnable runnable) {
         runLater(runnable, () -> runLater(runnable));
     }
 
     private void runLater(Runnable runnable, Runnable defer) {
-        if (mc.isOnThread() && inRunLater && !inRenderTaskQueue) {
-            ((MinecraftAccessor) mc).getRenderTaskQueue().offer(() -> {
-                inRenderTaskQueue = true;
-                try {
-                    defer.run();
-                } finally {
-                    inRenderTaskQueue = false;
+        if (mc.isCallingFromMinecraftThread() && inRunLater) {
+            //#if MC>=10800
+            FML_BUS.register(new Object() {
+                @SubscribeEvent
+                public void onRenderTick(TickEvent.RenderTickEvent event) {
+                    if (event.phase == TickEvent.Phase.START) {
+                        FML_BUS.unregister(this);
+                        defer.run();
+                    }
                 }
             });
-        } else {
-            executor.send(() -> {
+            //#else
+            //$$ FML_BUS.register(new RunLaterHelper(defer));
+            //#endif
+            return;
+        }
+        //#if MC>=10800
+        Queue<FutureTask<?>> tasks = ((MinecraftAccessor) mc).getScheduledTasks();
+        //noinspection SynchronizationOnLocalVariableOrMethodParameter
+        synchronized (tasks) {
+        //#else
+        //$$ Queue<ListenableFutureTask<?>> tasks = scheduledTasks;
+        //$$ synchronized (scheduledTasks) {
+        //#endif
+            tasks.add(ListenableFutureTask.create(() -> {
                 inRunLater = true;
                 try {
                     runnable.run();
-                } catch (CrashException e) {
+                } catch (ReportedException e) {
                     e.printStackTrace();
-                    System.err.println(e.getReport().asString());
-                    mc.setCrashReport(e.getReport());
+                    System.err.println(e.getCrashReport().getCompleteReport());
+                    mc.crashed(e.getCrashReport());
                 } finally {
                     inRunLater = false;
                 }
-            });
+            }, null));
         }
     }
+
+    //#if MC>=10800
+    @Override
+    public void runTasks() {
+    }
+    //#else
+    //$$ // 1.7.10: Cannot use MC's because it is processed only during ticks (so not at all when replay is paused)
+    //$$ private final Queue<ListenableFutureTask<?>> scheduledTasks = new ArrayDeque<>();
+    //$$
+    //$$ // in 1.7.10 apparently events can't be delivered to anonymous classes
+    //$$ public class RunLaterHelper {
+    //$$     private final Runnable defer;
+    //$$
+    //$$     private RunLaterHelper(Runnable defer) {
+    //$$         this.defer = defer;
+    //$$     }
+    //$$
+    //$$     @SubscribeEvent
+    //$$     public void onRenderTick(TickEvent.RenderTickEvent event) {
+    //$$         if (event.phase == TickEvent.Phase.START) {
+    //$$             FML_BUS.unregister(this);
+    //$$             defer.run();
+    //$$         }
+    //$$     }
+    //$$ }
+    //$$
+    //$$ @Override
+    //$$ public void runTasks() {
+    //$$     synchronized (scheduledTasks) {
+    //$$         while (!scheduledTasks.isEmpty()) {
+    //$$             scheduledTasks.poll().run();
+    //$$         }
+    //$$     }
+    //$$ }
+    //#endif
 }

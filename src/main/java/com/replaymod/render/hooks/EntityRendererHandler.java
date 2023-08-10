@@ -11,25 +11,25 @@ import com.replaymod.render.capturer.WorldRenderer;
 import com.replaymod.render.mixin.GameRendererAccessor;
 import com.replaymod.replay.ReplayModReplay;
 import de.johni0702.minecraft.gui.utils.EventRegistrations;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiScreen;
 
 //#if MC>=11400
-import com.replaymod.core.events.PostRenderCallback;
-import com.replaymod.core.events.PreRenderCallback;
-import net.minecraft.util.Util;
+//$$ import com.replaymod.core.events.PostRenderCallback;
+//$$ import com.replaymod.core.events.PreRenderCallback;
+//$$ import net.minecraft.util.Util;
 //#else
 //#if MC>=11400
 //$$ import net.minecraftforge.fml.hooks.BasicEventHooks;
 //#else
-//$$ import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.common.FMLCommonHandler;
 //#endif
 //#endif
 
 import java.io.IOException;
 
 public class EntityRendererHandler extends EventRegistrations implements WorldRenderer {
-    public final MinecraftClient mc = MCVer.getMinecraft();
+    public final Minecraft mc = MCVer.getMinecraft();
 
     protected final RenderSettings settings;
 
@@ -46,14 +46,14 @@ public class EntityRendererHandler extends EventRegistrations implements WorldRe
         this.renderInfo = renderInfo;
 
         //#if MC>=11400
-        this.startTime = Util.getMeasuringTimeNano();
+        //$$ this.startTime = Util.nanoTime();
         //#else
-        //$$ this.startTime = System.nanoTime();
+        this.startTime = System.nanoTime();
         //#endif
 
         on(PreRenderHandCallback.EVENT, () -> omnidirectional);
 
-        ((IEntityRenderer) mc.gameRenderer).replayModRender_setHandler(this);
+        ((IEntityRenderer) mc.entityRenderer).replayModRender_setHandler(this);
         register();
     }
 
@@ -72,58 +72,58 @@ public class EntityRendererHandler extends EventRegistrations implements WorldRe
 
     public void renderWorld(float partialTicks, long finishTimeNano) {
         //#if MC>=11400
-        PreRenderCallback.EVENT.invoker().preRender();
+        //$$ PreRenderCallback.EVENT.invoker().preRender();
         //#else
         //#if MC>=11400
         //$$ BasicEventHooks.onRenderTickStart(partialTicks);
         //#else
-        //$$ FMLCommonHandler.instance().onRenderTickStart(partialTicks);
+        FMLCommonHandler.instance().onRenderTickStart(partialTicks);
         //#endif
         //#endif
 
         if (mc.world != null && mc.player != null) {
-            GameRendererAccessor gameRenderer = (GameRendererAccessor) mc.gameRenderer;
-            Screen orgScreen = mc.currentScreen;
-            boolean orgPauseOnLostFocus = mc.options.pauseOnLostFocus;
+            GameRendererAccessor gameRenderer = (GameRendererAccessor) mc.entityRenderer;
+            GuiScreen orgScreen = mc.currentScreen;
+            boolean orgPauseOnLostFocus = mc.gameSettings.pauseOnLostFocus;
             boolean orgRenderHand = gameRenderer.getRenderHand();
             try {
                 mc.currentScreen = null; // do not want to render the current screen (that'd just be the progress gui)
-                mc.options.pauseOnLostFocus = false; // do not want the pause menu to open if the window is unfocused
+                mc.gameSettings.pauseOnLostFocus = false; // do not want the pause menu to open if the window is unfocused
                 if (omnidirectional) {
                     gameRenderer.setRenderHand(false); // makes no sense, we wouldn't even know where to put it
                 }
 
                 //#if MC>=11400
-                mc.gameRenderer.render(partialTicks, finishTimeNano, true);
+                //$$ mc.gameRenderer.updateCameraAndRender(partialTicks, finishTimeNano, true);
                 //#else
-                //$$ mc.setIngameNotInFocus(); // this should already be the case but it somehow still sometimes is not
+                mc.setIngameNotInFocus(); // this should already be the case but it somehow still sometimes is not
                 //#if MC>=10809
-                //$$ mc.entityRenderer.updateCameraAndRender(partialTicks, finishTimeNano);
+                mc.entityRenderer.updateCameraAndRender(partialTicks, finishTimeNano);
                 //#else
                 //$$ mc.entityRenderer.updateCameraAndRender(partialTicks);
                 //#endif
                 //#endif
             } finally {
                 mc.currentScreen = orgScreen;
-                mc.options.pauseOnLostFocus = orgPauseOnLostFocus;
+                mc.gameSettings.pauseOnLostFocus = orgPauseOnLostFocus;
                 gameRenderer.setRenderHand(orgRenderHand);
             }
         }
 
         //#if MC>=11400
-        PostRenderCallback.EVENT.invoker().postRender();
+        //$$ PostRenderCallback.EVENT.invoker().postRender();
         //#else
         //#if MC>=11400
         //$$ BasicEventHooks.onRenderTickEnd(partialTicks);
         //#else
-        //$$ FMLCommonHandler.instance().onRenderTickEnd(partialTicks);
+        FMLCommonHandler.instance().onRenderTickEnd(partialTicks);
         //#endif
         //#endif
     }
 
     @Override
     public void close() throws IOException {
-        ((IEntityRenderer) mc.gameRenderer).replayModRender_setHandler(null);
+        ((IEntityRenderer) mc.entityRenderer).replayModRender_setHandler(null);
         unregister();
     }
 

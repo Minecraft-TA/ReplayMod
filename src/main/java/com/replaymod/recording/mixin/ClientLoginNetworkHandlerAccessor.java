@@ -1,6 +1,6 @@
 package com.replaymod.recording.mixin;
 
-import net.minecraft.client.network.ClientLoginNetworkHandler;
+import net.minecraft.client.network.NetHandlerLoginClient;
 import org.spongepowered.asm.mixin.Mixin;
 
 //#if MC>=11903
@@ -8,7 +8,7 @@ import org.spongepowered.asm.mixin.Mixin;
 //$$ import org.spongepowered.asm.mixin.gen.Accessor;
 //#endif
 
-@Mixin(ClientLoginNetworkHandler.class)
+@Mixin(NetHandlerLoginClient.class)
 public interface ClientLoginNetworkHandlerAccessor {
     //#if MC>=11903
     //$$ @Accessor

@@ -1,7 +1,7 @@
 package com.replaymod.replay.mixin.entity_tracking;
 
 import com.replaymod.replay.ext.EntityExt;
-import net.minecraft.client.network.ClientPlayNetworkHandler;
+import net.minecraft.client.network.NetHandlerPlayClient;
 import net.minecraft.entity.Entity;
 import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.mixin.Mixin;
@@ -30,7 +30,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * This mixin fixes those two issues by redirecting to the server rotation/position respectively.
  * Minecraft does not currently even track the server rotation, so we need to do that as well.
  */
-@Mixin(ClientPlayNetworkHandler.class)
+@Mixin(NetHandlerPlayClient.class)
 public class Mixin_FixPartialUpdates {
 
     //
@@ -40,7 +40,7 @@ public class Mixin_FixPartialUpdates {
     //#if MC>=11700
     //$$ @Redirect(method = "onEntityUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getYaw()F"))
     //#else
-    @Redirect(method = "onEntityUpdate", at = @At(value = "FIELD", target = "Lnet/minecraft/entity/Entity;yaw:F", opcode = Opcodes.GETFIELD))
+    @Redirect(method = "handleEntityMovement", at = @At(value = "FIELD", target = "Lnet/minecraft/entity/Entity;rotationYaw:F", opcode = Opcodes.GETFIELD))
     //#endif
     private float getTrackedYaw(Entity instance) {
         return ((EntityExt) instance).replaymod$getTrackedYaw();
@@ -49,59 +49,59 @@ public class Mixin_FixPartialUpdates {
     //#if MC>=11700
     //$$ @Redirect(method = "onEntityUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getPitch()F"))
     //#else
-    @Redirect(method = "onEntityUpdate", at = @At(value = "FIELD", target = "Lnet/minecraft/entity/Entity;pitch:F", opcode = Opcodes.GETFIELD))
+    @Redirect(method = "handleEntityMovement", at = @At(value = "FIELD", target = "Lnet/minecraft/entity/Entity;rotationPitch:F", opcode = Opcodes.GETFIELD))
     //#endif
     private float getTrackedPitch(Entity instance) {
         return ((EntityExt) instance).replaymod$getTrackedPitch();
     }
 
     //#if MC>=11500
-    //
-    // Use correct position for rotation-only updates
-    //
-
-    @Redirect(method = "onEntityUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getX()D"))
-    private double getTrackedX(Entity instance) {
-        return instance.getTrackedPosition().getX();
-    }
-
-    @Redirect(method = "onEntityUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getY()D"))
-    private double getTrackedY(Entity instance) {
-        return instance.getTrackedPosition().getY();
-    }
-
-    @Redirect(method = "onEntityUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getZ()D"))
-    private double getTrackedZ(Entity instance) {
-        return instance.getTrackedPosition().getZ();
-    }
+    //$$ //
+    //$$ // Use correct position for rotation-only updates
+    //$$ //
+    //$$
+    //$$ @Redirect(method = "onEntityUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getX()D"))
+    //$$ private double getTrackedX(Entity instance) {
+    //$$     return com.replaymod.core.versions.MCVer.getTrackedPosition(instance).getX();
+    //$$ }
+    //$$
+    //$$ @Redirect(method = "onEntityUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getY()D"))
+    //$$ private double getTrackedY(Entity instance) {
+    //$$     return com.replaymod.core.versions.MCVer.getTrackedPosition(instance).getY();
+    //$$ }
+    //$$
+    //$$ @Redirect(method = "onEntityUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getZ()D"))
+    //$$ private double getTrackedZ(Entity instance) {
+    //$$     return com.replaymod.core.versions.MCVer.getTrackedPosition(instance).getZ();
+    //$$ }
     //#endif
 
     //
     // Track server rotation
     //
 
-    private static final String ENTITY_UPDATE = "Lnet/minecraft/entity/Entity;updateTrackedPositionAndAngles(DDDFFIZ)V";
+    private static final String ENTITY_UPDATE = "Lnet/minecraft/entity/Entity;setPositionAndRotationDirect(DDDFFIZ)V";
 
     @Unique
     private Entity entity;
 
-    @ModifyVariable(method = { "onEntityUpdate", "onEntityPosition" }, at = @At(value = "INVOKE", target = ENTITY_UPDATE), ordinal = 0)
+    @ModifyVariable(method = { "handleEntityMovement", "handleEntityTeleport" }, at = @At(value = "INVOKE", target = ENTITY_UPDATE), ordinal = 0)
     private Entity captureEntity(Entity entity) {
         return this.entity = entity;
     }
 
-    @Inject(method = { "onEntityUpdate", "onEntityPosition" }, at = @At("RETURN"))
+    @Inject(method = { "handleEntityMovement", "handleEntityTeleport" }, at = @At("RETURN"))
     private void resetEntityField(CallbackInfo ci) {
         this.entity = null;
     }
 
-    @ModifyArg(method = { "onEntityUpdate", "onEntityPosition" }, at = @At(value = "INVOKE", target = ENTITY_UPDATE), index = 3)
+    @ModifyArg(method = { "handleEntityMovement", "handleEntityTeleport" }, at = @At(value = "INVOKE", target = ENTITY_UPDATE), index = 3)
     private float captureTrackedYaw(float value) {
         ((EntityExt) this.entity).replaymod$setTrackedYaw(value);
         return value;
     }
 
-    @ModifyArg(method = { "onEntityUpdate", "onEntityPosition" }, at = @At(value = "INVOKE", target = ENTITY_UPDATE), index = 4)
+    @ModifyArg(method = { "handleEntityMovement", "handleEntityTeleport" }, at = @At(value = "INVOKE", target = ENTITY_UPDATE), index = 4)
     private float captureTrackedPitch(float value) {
         ((EntityExt) this.entity).replaymod$setTrackedPitch(value);
         return value;

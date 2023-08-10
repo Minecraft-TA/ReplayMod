@@ -1,13 +1,13 @@
 package com.replaymod.replay.camera;
 
 import com.replaymod.replay.ReplayModReplay;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.options.KeyBinding;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.Entity;
 
 //#if MC>=11400
 //#else
-//$$ import org.lwjgl.input.Mouse;
+import org.lwjgl.input.Mouse;
 //#endif
 
 import java.util.Arrays;
@@ -23,32 +23,32 @@ public class SpectatorCameraController implements CameraController {
 
     @Override
     public void update(float partialTicksPassed) {
-        MinecraftClient mc = getMinecraft();
-        if (mc.options.keySneak.wasPressed()) {
+        Minecraft mc = getMinecraft();
+        if (mc.gameSettings.keyBindSneak.isPressed()) {
             ReplayModReplay.instance.getReplayHandler().spectateCamera();
         }
 
         // Soak up all remaining key presses
-        for (KeyBinding binding : Arrays.asList(mc.options.keyAttack, mc.options.keyUse,
-                mc.options.keyJump, mc.options.keySneak, mc.options.keyForward,
-                mc.options.keyBack, mc.options.keyLeft, mc.options.keyRight)) {
+        for (KeyBinding binding : Arrays.asList(mc.gameSettings.keyBindAttack, mc.gameSettings.keyBindUseItem,
+                mc.gameSettings.keyBindJump, mc.gameSettings.keyBindSneak, mc.gameSettings.keyBindForward,
+                mc.gameSettings.keyBindBack, mc.gameSettings.keyBindLeft, mc.gameSettings.keyBindRight)) {
             //noinspection StatementWithEmptyBody
-            while (binding.wasPressed());
+            while (binding.isPressed());
         }
 
         // Prevent mouse movement
         //#if MC>=11400
-        // No longer needed
+        //$$ // No longer needed
         //#else
-        //$$ Mouse.updateCursor();
+        Mouse.updateCursor();
         //#endif
 
         // Always make sure the camera is in the exact same spot as the spectated entity
         // This is necessary as some rendering code for the hand doesn't respect the view entity
         // and always uses mc.thePlayer
-        Entity view = mc.getCameraEntity();
+        Entity view = mc.getRenderViewEntity();
         if (view != null && view != camera) {
-            camera.setCameraPosRot(mc.getCameraEntity());
+            camera.setCameraPosRot(mc.getRenderViewEntity());
         }
     }
 

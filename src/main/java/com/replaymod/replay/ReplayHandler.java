@@ -4,7 +4,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.mojang.blaze3d.platform.GlStateManager;
+import net.minecraft.client.renderer.GlStateManager;
 import com.replaymod.core.ReplayMod;
 import com.replaymod.core.mixin.MinecraftAccessor;
 import com.replaymod.core.mixin.TimerAccessor;
@@ -29,15 +29,15 @@ import de.johni0702.minecraft.gui.layout.HorizontalLayout;
 import de.johni0702.minecraft.gui.popup.AbstractGuiPopup;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.embedded.EmbeddedChannel;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.DownloadingTerrainScreen;
-import net.minecraft.client.network.ClientLoginNetworkHandler;
-import net.minecraft.client.util.Window;
-import net.minecraft.network.NetworkState;
-import net.minecraft.util.crash.CrashReport;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiDownloadTerrain;
+import net.minecraft.client.network.NetHandlerLoginClient;
+import com.replaymod.core.versions.Window;
+import net.minecraft.network.EnumConnectionState;
+import net.minecraft.crash.CrashReport;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.network.ClientConnection;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.network.NetworkManager;
 
 import java.io.IOException;
 import java.util.*;
@@ -57,21 +57,21 @@ import java.util.*;
 //#endif
 
 //#if MC>=11600
-import net.minecraft.client.util.math.MatrixStack;
+//$$ import net.minecraft.client.util.math.MatrixStack;
 //#endif
 
 //#if MC>=11500
-import com.mojang.blaze3d.systems.RenderSystem;
-import org.lwjgl.opengl.GL11;
+//$$ import com.mojang.blaze3d.systems.RenderSystem;
+//$$ import org.lwjgl.opengl.GL11;
 //#endif
 
 //#if MC>=11400
-import com.replaymod.replay.mixin.EntityLivingBaseAccessor;
-import net.minecraft.entity.LivingEntity;
+//$$ import com.replaymod.replay.mixin.EntityLivingBaseAccessor;
+//$$ import net.minecraft.entity.LivingEntity;
 //#else
-//$$ import com.replaymod.replay.mixin.EntityOtherPlayerMPAccessor;
-//$$ import net.minecraft.client.entity.EntityOtherPlayerMP;
-//$$ import org.lwjgl.opengl.Display;
+import com.replaymod.replay.mixin.EntityOtherPlayerMPAccessor;
+import net.minecraft.client.entity.EntityOtherPlayerMP;
+import org.lwjgl.opengl.Display;
 //#endif
 
 //#if MC>=11200
@@ -86,15 +86,15 @@ import net.minecraft.entity.LivingEntity;
 //#endif
 
 //#if MC>=10800
-import net.minecraft.network.NetworkSide;
+import net.minecraft.network.EnumPacketDirection;
 //#if MC>=11400
 //#else
 //#if MC>=11400
 //$$ import net.minecraftforge.fml.network.NetworkHooks;
 //#else
-//$$ import com.mojang.authlib.GameProfile;
-//$$ import net.minecraft.client.network.NetHandlerPlayClient;
-//$$ import net.minecraftforge.fml.common.network.handshake.NetworkDispatcher;
+import com.mojang.authlib.GameProfile;
+import net.minecraft.client.network.NetHandlerPlayClient;
+import net.minecraftforge.fml.common.network.handshake.NetworkDispatcher;
 //#endif
 //#endif
 //#else
@@ -118,7 +118,7 @@ import static org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT;
 
 public class ReplayHandler {
 
-    private static MinecraftClient mc = getMinecraft();
+    private static Minecraft mc = getMinecraft();
 
     /**
      * The file currently being played.
@@ -162,7 +162,7 @@ public class ReplayHandler {
     private UUID spectating;
 
     public ReplayHandler(ReplayFile replayFile, boolean asyncMode) throws IOException {
-        Preconditions.checkState(mc.isOnThread(), "Must be called from Minecraft thread.");
+        Preconditions.checkState(mc.isCallingFromMinecraftThread(), "Must be called from Minecraft thread.");
         this.replayFile = replayFile;
 
         replayDuration = replayFile.getMetaData().getDuration();
@@ -185,24 +185,24 @@ public class ReplayHandler {
     }
 
     void restartedReplay() {
-        Preconditions.checkState(mc.isOnThread(), "Must be called from Minecraft thread.");
+        Preconditions.checkState(mc.isCallingFromMinecraftThread(), "Must be called from Minecraft thread.");
 
         channel.close();
 
         //#if MC>=11400
-        mc.mouse.unlockCursor();
+        //$$ mc.mouseHelper.ungrabMouse();
         //#else
-        //$$ mc.setIngameNotInFocus();
+        mc.setIngameNotInFocus();
         //#endif
 
         // Force re-creation of camera entity by unloading the previous world
         //#if MC>=11400
-        mc.disconnect();
+        //$$ mc.func_213254_o();
         //#else
-        //$$ // We need to re-set the GUI screen because having one with `allowsUserInput = true` active during world
-        //$$ // load (i.e. before player is set) will crash MC...
-        //$$ mc.displayGuiScreen(new net.minecraft.client.gui.GuiScreen() {});
-        //$$ mc.loadWorld(null);
+        // We need to re-set the GUI screen because having one with `allowsUserInput = true` active during world
+        // load (i.e. before player is set) will crash MC...
+        mc.displayGuiScreen(new net.minecraft.client.gui.GuiScreen() {});
+        mc.loadWorld(null);
         //#endif
 
         restrictions = new Restrictions();
@@ -211,7 +211,7 @@ public class ReplayHandler {
     }
 
     public void endReplay() throws IOException {
-        Preconditions.checkState(mc.isOnThread(), "Must be called from Minecraft thread.");
+        Preconditions.checkState(mc.isCallingFromMinecraftThread(), "Must be called from Minecraft thread.");
 
         ReplayClosingCallback.EVENT.invoker().replayClosing(this);
 
@@ -230,19 +230,19 @@ public class ReplayHandler {
         if (mc.player instanceof CameraEntity) {
             //#if MC<11700
             //#if MC>=11400
-            mc.player.remove();
+            //$$ mc.player.remove();
             //#else
-            //$$ mc.player.setDead();
+            mc.player.setDead();
             //#endif
             //#endif
         }
 
         if (mc.world != null) {
             //#if MC>=11400
-            mc.disconnect();
+            //$$ mc.func_213254_o();
             //#else
-            //$$ mc.world.sendQuittingDisconnectingPacket();
-            //$$ mc.loadWorld(null);
+            mc.world.sendQuittingDisconnectingPacket();
+            mc.loadWorld(null);
             //#endif
         }
 
@@ -256,22 +256,22 @@ public class ReplayHandler {
 
         ReplayModReplay.instance.forcefullyStopReplay();
 
-        mc.openScreen(null);
+        mc.displayGuiScreen(null);
 
         ReplayClosedCallback.EVENT.invoker().replayClosed(this);
     }
 
     private void setup() {
-        Preconditions.checkState(mc.isOnThread(), "Must be called from Minecraft thread.");
+        Preconditions.checkState(mc.isCallingFromMinecraftThread(), "Must be called from Minecraft thread.");
 
         //#if MC>=11100
-        mc.inGameHud.getChatHud().clear(false);
+        mc.ingameGUI.getChatGUI().clearChatMessages(false);
         //#else
         //$$ mc.ingameGUI.getChatGUI().clearChatMessages();
         //#endif
 
         //#if MC>=10800
-        ClientConnection networkManager = new ClientConnection(NetworkSide.CLIENTBOUND) {
+        NetworkManager networkManager = new NetworkManager(EnumPacketDirection.CLIENTBOUND) {
             @Override
             public void exceptionCaught(ChannelHandlerContext ctx, Throwable t) {
                 t.printStackTrace();
@@ -301,7 +301,7 @@ public class ReplayHandler {
         //$$ FMLClientHandler.instance().connectToRealmsServer(null, 0); // just to init the playClientBlock latch
         //#endif
 
-        networkManager.setPacketListener(new ClientLoginNetworkHandler(
+        networkManager.setNetHandler(new NetHandlerLoginClient(
                 networkManager,
                 mc,
                 null
@@ -311,7 +311,7 @@ public class ReplayHandler {
                 //$$ , null
                 //#endif
                 //#if MC>=11400
-                , it -> {}
+                //$$ , it -> {}
                 //#endif
         ));
 
@@ -335,10 +335,10 @@ public class ReplayHandler {
 
         // MC usually transitions from handshake to login via the packets it sends.
         // We don't send any packets (there is no server to receive them), so we need to switch manually.
-        networkManager.setState(NetworkState.LOGIN);
+        networkManager.setConnectionState(EnumConnectionState.LOGIN);
 
         //#if MC>=11400
-        ((MinecraftAccessor) mc).setConnection(networkManager);
+        //$$ ((MinecraftAccessor) mc).setConnection(networkManager);
         //#endif
     }
 
@@ -378,7 +378,7 @@ public class ReplayHandler {
                 @Override
                 public void onFailure(@Nonnull Throwable t) {
                     String message = "Failed to initialize quick mode. It will not be available.";
-                    Utils.error(LOGGER, overlay, CrashReport.create(t, message), popup::close);
+                    Utils.error(LOGGER, overlay, CrashReport.makeCrashReport(t, message), popup::close);
                 }
             });
         }
@@ -431,7 +431,7 @@ public class ReplayHandler {
 
         CameraEntity cam = getCameraEntity();
         if (cam != null) {
-            targetCameraPosition = new Location(cam.getX(), cam.getY(), cam.getZ(), cam.yaw, cam.pitch);
+            targetCameraPosition = new Location(cam.posX, cam.posY, cam.posZ, cam.rotationYaw, cam.rotationPitch);
         } else {
             targetCameraPosition = null;
         }
@@ -504,8 +504,8 @@ public class ReplayHandler {
         if (e == null || e == cameraEntity) {
             spectating = null;
             e = cameraEntity;
-        } else if (e instanceof PlayerEntity) {
-            spectating = e.getUuid();
+        } else if (e instanceof EntityPlayer) {
+            spectating = e.getUniqueID();
         }
 
         if (e == cameraEntity) {
@@ -514,8 +514,8 @@ public class ReplayHandler {
             cameraEntity.setCameraController(new SpectatorCameraController(cameraEntity));
         }
 
-        if (mc.getCameraEntity() != e) {
-            mc.setCameraEntity(e);
+        if (mc.getRenderViewEntity() != e) {
+            mc.setRenderViewEntity(e);
             cameraEntity.setCameraPosRot(e);
         }
     }
@@ -533,7 +533,7 @@ public class ReplayHandler {
      * @return {@code true} if the camera is the view entity, {@code false} otherwise
      */
     public boolean isCameraView() {
-        return mc.player instanceof CameraEntity && mc.player == mc.getCameraEntity();
+        return mc.player instanceof CameraEntity && mc.player == mc.getRenderViewEntity();
     }
 
     /**
@@ -571,31 +571,31 @@ public class ReplayHandler {
             }
 
             // Update all entity positions (especially prev/lastTick values)
-            for (Entity entity : mc.world.getEntities()) {
+            for (Entity entity : mc.world.loadedEntityList) {
                 skipTeleportInterpolation(entity);
-                entity.lastRenderX = entity.prevX = entity.getX();
-                entity.lastRenderY = entity.prevY = entity.getY();
-                entity.lastRenderZ = entity.prevZ = entity.getZ();
-                entity.prevYaw = entity.yaw;
-                entity.prevPitch = entity.pitch;
+                entity.lastTickPosX = entity.prevPosX = entity.posX;
+                entity.lastTickPosY = entity.prevPosY = entity.posY;
+                entity.lastTickPosZ = entity.prevPosZ = entity.posZ;
+                entity.prevRotationYaw = entity.rotationYaw;
+                entity.prevRotationPitch = entity.rotationPitch;
             }
 
             // Run previous tick
             //#if MC>=11400
-            mc.tick();
+            //$$ mc.runTick();
             //#else
-            //$$ try {
-            //$$     mc.runTick();
-            //$$ } catch (IOException e) {
-            //$$     throw new RuntimeException(e);
-            //$$ }
+            try {
+                mc.runTick();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
             //#endif
 
             // Jump to target tick
             quickReplaySender.sendPacketsTill(targetTime);
 
             // Immediately apply player teleport interpolation
-            for (Entity entity : mc.world.getEntities()) {
+            for (Entity entity : mc.world.loadedEntityList) {
                 skipTeleportInterpolation(entity);
             }
             return;
@@ -608,14 +608,14 @@ public class ReplayHandler {
         }
 
         if (targetTime < replaySender.currentTimeStamp()) {
-            mc.openScreen(null);
+            mc.displayGuiScreen(null);
         }
 
         if (retainCameraPosition) {
             CameraEntity cam = getCameraEntity();
             if (cam != null) {
-                targetCameraPosition = new Location(cam.getX(), cam.getY(), cam.getZ(),
-                        cam.yaw, cam.pitch);
+                targetCameraPosition = new Location(cam.posX, cam.posY, cam.posZ,
+                        cam.rotationYaw, cam.rotationPitch);
             } else {
                 targetCameraPosition = null;
             }
@@ -640,16 +640,16 @@ public class ReplayHandler {
                 pushMatrix();
                 GlStateManager.clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT
                         //#if MC>=11400
-                        , true
+                        //$$ , true
                         //#endif
                 );
                 //#if MC<11904
-                GlStateManager.enableTexture();
+                GlStateManager.enableTexture2D();
                 //#endif
-                mc.getFramebuffer().beginWrite(true);
-                Window window = mc.getWindow();
+                mc.getFramebuffer().bindFramebuffer(true);
+                Window window = new com.replaymod.core.versions.Window(mc);
                 //#if MC>=11500
-                RenderSystem.clear(256, MinecraftClient.IS_SYSTEM_MAC);
+                //$$ RenderSystem.clear(256, MinecraftClient.IS_SYSTEM_MAC);
                 //#if MC>=11700
                 //$$ RenderSystem.setProjectionMatrix(Matrix4f.projectionMatrix(
                 //$$         0,
@@ -669,48 +669,48 @@ public class ReplayHandler {
                 //$$ RenderSystem.applyModelViewMatrix();
                 //$$ DiffuseLighting.enableGuiDepthLighting();
                 //#else
-                RenderSystem.matrixMode(GL11.GL_PROJECTION);
-                RenderSystem.loadIdentity();
-                RenderSystem.ortho(0, window.getFramebufferWidth() / window.getScaleFactor(), window.getFramebufferHeight() / window.getScaleFactor(), 0, 1000, 3000);
-                RenderSystem.matrixMode(GL11.GL_MODELVIEW);
-                RenderSystem.loadIdentity();
-                RenderSystem.translatef(0, 0, -2000);
+                //$$ RenderSystem.matrixMode(GL11.GL_PROJECTION);
+                //$$ RenderSystem.loadIdentity();
+                //$$ RenderSystem.ortho(0, window.getFramebufferWidth() / window.getScaleFactor(), window.getFramebufferHeight() / window.getScaleFactor(), 0, 1000, 3000);
+                //$$ RenderSystem.matrixMode(GL11.GL_MODELVIEW);
+                //$$ RenderSystem.loadIdentity();
+                //$$ RenderSystem.translatef(0, 0, -2000);
                 //#endif
                 //#else
                 //#if MC>=11400
-                //$$ window.method_4493(true);
+                //$$ window.loadGUIRenderMatrix(true);
                 //#else
-                //$$ mc.entityRenderer.setupOverlayRendering();
+                mc.entityRenderer.setupOverlayRendering();
                 //#endif
                 //#endif
 
-                guiScreen.toMinecraft().init(mc, window.getScaledWidth(), window.getScaledHeight());
+                guiScreen.toMinecraft().setWorldAndResolution(mc, window.getScaledWidth(), window.getScaledHeight());
                 //#if MC>=12000
                 //$$ guiScreen.toMinecraft().render(new DrawContext(mc, mc.getBufferBuilders().getEntityVertexConsumers()), 0, 0, 0);
                 //#elseif MC>=11600
-                guiScreen.toMinecraft().render(new MatrixStack(), 0, 0, 0);
+                //$$ guiScreen.toMinecraft().render(new MatrixStack(), 0, 0, 0);
                 //#else
                 //#if MC>=11400
                 //$$ guiScreen.toMinecraft().render(0, 0, 0);
                 //#else
-                //$$ guiScreen.toMinecraft().drawScreen(0, 0, 0);
+                guiScreen.toMinecraft().drawScreen(0, 0, 0);
                 //#endif
                 //#endif
-                guiScreen.toMinecraft().removed();
+                guiScreen.toMinecraft().onGuiClosed();
 
-                mc.getFramebuffer().endWrite();
+                mc.getFramebuffer().unbindFramebuffer();
                 popMatrix();
                 pushMatrix();
-                mc.getFramebuffer().draw(mc.getWindow().getFramebufferWidth(), mc.getWindow().getFramebufferHeight());
+                mc.getFramebuffer().framebufferRender(new com.replaymod.core.versions.Window(mc).getFramebufferWidth(), new com.replaymod.core.versions.Window(mc).getFramebufferHeight());
                 popMatrix();
 
                 //#if MC>=11500
-                mc.getWindow().swapBuffers();
+                //$$ mc.getWindow().swapBuffers();
                 //#else
                 //#if MC>=11400
-                //$$ mc.window.setFullscreen(true);
+                //$$ mc.mainWindow.update(true);
                 //#else
-                //$$ Display.update();
+                Display.update();
                 //#endif
                 //#endif
 
@@ -718,7 +718,7 @@ public class ReplayHandler {
                 do {
                     replaySender.sendPacketsTill(targetTime);
                     targetTime += 500;
-                } while (mc.player == null || mc.currentScreen instanceof DownloadingTerrainScreen);
+                } while (mc.player == null || mc.currentScreen instanceof GuiDownloadTerrain);
                 replaySender.setAsyncMode(true);
                 replaySender.setReplaySpeed(0);
 
@@ -728,11 +728,11 @@ public class ReplayHandler {
                 //$$ }
                 //#endif
 
-                mc.getNetworkHandler().getConnection()
+                mc.getConnection().getNetworkManager()
                         //#if MC>=11400
-                        .tick();
+                        //$$ .tick();
                         //#else
-                        //$$ .processReceivedPackets();
+                        .processReceivedPackets();
                         //#endif
 
                 // If the packets we just sent somehow caused the client to disconnect, then the above connection tick
@@ -741,22 +741,22 @@ public class ReplayHandler {
                     return;
                 }
 
-                for (Entity entity : mc.world.getEntities()) {
+                for (Entity entity : mc.world.loadedEntityList) {
                     skipTeleportInterpolation(entity);
-                    entity.lastRenderX = entity.prevX = entity.getX();
-                    entity.lastRenderY = entity.prevY = entity.getY();
-                    entity.lastRenderZ = entity.prevZ = entity.getZ();
-                    entity.prevYaw = entity.yaw;
-                    entity.prevPitch = entity.pitch;
+                    entity.lastTickPosX = entity.prevPosX = entity.posX;
+                    entity.lastTickPosY = entity.prevPosY = entity.posY;
+                    entity.lastTickPosZ = entity.prevPosZ = entity.posZ;
+                    entity.prevRotationYaw = entity.rotationYaw;
+                    entity.prevRotationPitch = entity.rotationPitch;
                 }
                 //#if MC>=10800 && MC<11400
-                //$$ try {
-                //$$     mc.runTick();
-                //$$ } catch (IOException e) {
-                //$$     e.printStackTrace(); // This should never be thrown but whatever
-                //$$ }
+                try {
+                    mc.runTick();
+                } catch (IOException e) {
+                    e.printStackTrace(); // This should never be thrown but whatever
+                }
                 //#else
-                mc.tick();
+                //$$ mc.runTick();
                 //#endif
 
                 //finally, updating the camera's position (which is not done by the sync jumping)
@@ -770,21 +770,21 @@ public class ReplayHandler {
 
     private void skipTeleportInterpolation(Entity entity) {
         //#if MC>=11400
-        if (entity instanceof LivingEntity && !(entity instanceof CameraEntity)) {
-            LivingEntity e = (LivingEntity) entity;
-            EntityLivingBaseAccessor ea = (EntityLivingBaseAccessor) e;
-            e.updatePosition(ea.getInterpTargetX(), ea.getInterpTargetY(), ea.getInterpTargetZ());
-            e.yaw = (float) ea.getInterpTargetYaw();
-            e.pitch = (float) ea.getInterpTargetPitch();
-        }
-        //#else
-        //$$ if (entity instanceof EntityOtherPlayerMP) {
-        //$$     EntityOtherPlayerMP e = (EntityOtherPlayerMP) entity;
-        //$$     EntityOtherPlayerMPAccessor ea = (EntityOtherPlayerMPAccessor) e;
-        //$$     e.setPosition(ea.getOtherPlayerMPX(), ea.getOtherPlayerMPY(), ea.getOtherPlayerMPZ());
-        //$$     e.rotationYaw = (float) ea.getOtherPlayerMPYaw();
-        //$$     e.rotationPitch = (float) ea.getOtherPlayerMPPitch();
+        //$$ if (entity instanceof LivingEntity && !(entity instanceof CameraEntity)) {
+        //$$     LivingEntity e = (LivingEntity) entity;
+        //$$     EntityLivingBaseAccessor ea = (EntityLivingBaseAccessor) e;
+        //$$     e.setPosition(ea.getInterpTargetX(), ea.getInterpTargetY(), ea.getInterpTargetZ());
+        //$$     e.rotationYaw = (float) ea.getInterpTargetYaw();
+        //$$     e.rotationPitch = (float) ea.getInterpTargetPitch();
         //$$ }
+        //#else
+        if (entity instanceof EntityOtherPlayerMP) {
+            EntityOtherPlayerMP e = (EntityOtherPlayerMP) entity;
+            EntityOtherPlayerMPAccessor ea = (EntityOtherPlayerMPAccessor) e;
+            e.setPosition(ea.getOtherPlayerMPX(), ea.getOtherPlayerMPY(), ea.getOtherPlayerMPZ());
+            e.rotationYaw = (float) ea.getOtherPlayerMPYaw();
+            e.rotationPitch = (float) ea.getOtherPlayerMPPitch();
+        }
         //#endif
     }
 }

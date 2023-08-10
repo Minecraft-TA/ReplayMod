@@ -10,11 +10,11 @@ import com.replaymod.render.blend.data.DObject;
 import com.replaymod.render.blend.mixin.ParticleAccessor;
 import de.johni0702.minecraft.gui.utils.lwjgl.vector.Matrix4f;
 import de.johni0702.minecraft.gui.utils.lwjgl.vector.Vector3f;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 import org.lwjgl.opengl.GL11;
 
 //#if MC>=11400
-import net.minecraft.util.math.Vec3d;
+//$$ import net.minecraft.util.math.Vec3d;
 //#endif
 
 //#if MC>=10904
@@ -25,7 +25,7 @@ import net.minecraft.client.particle.Particle;
 //#endif
 
 //#if MC>=10809
-import net.minecraft.client.render.VertexFormats;
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 //#endif
 
 import java.io.IOException;
@@ -36,7 +36,7 @@ import static com.replaymod.render.blend.Util.getCameraPos;
 import static com.replaymod.render.blend.Util.getGlModelViewMatrix;
 
 public class ParticlesExporter implements Exporter {
-    private final MinecraftClient mc = MCVer.getMinecraft();
+    private final Minecraft mc = MCVer.getMinecraft();
     private final RenderState renderState;
     private DObject pointAtObject;
     private DObject particlesObject;
@@ -118,11 +118,11 @@ public class ParticlesExporter implements Exporter {
         double dy = acc.getPrevPosY() + (acc.getPosY() - acc.getPrevPosY()) * renderPartialTicks;
         double dz = acc.getPrevPosZ() + (acc.getPosZ() - acc.getPrevPosZ()) * renderPartialTicks;
         //#if MC>=11500
-        // FIXME 1.15 is this still required?
+        //$$ // FIXME 1.15 is this still required?
         //#else
-        //$$ dx -= Particle.cameraX;
-        //$$ dy -= Particle.cameraY;
-        //$$ dz -= Particle.cameraZ;
+        dx -= Particle.interpPosX;
+        dy -= Particle.interpPosY;
+        dz -= Particle.interpPosZ;
         //#endif
         Vector3f offset = new Vector3f((float) dx, (float) dy, (float) dz);
         Matrix4f.translate(offset, modelView, modelView);
@@ -170,26 +170,26 @@ public class ParticlesExporter implements Exporter {
         builder.setReverseOffset(offset);
         builder.setWellBehaved(true);
         //#if MC>=10809
-        builder.begin(GL11.GL_QUADS, VertexFormats.POSITION_TEXTURE_COLOR_LIGHT);
+        builder.begin(GL11.GL_QUADS, DefaultVertexFormats.PARTICLE_POSITION_TEX_COLOR_LMAP);
         //#else
         //$$ builder.startDrawingQuads();
         //#endif
         //#if MC>=10809
-        particle.buildGeometry(builder,
+        particle.renderParticle(builder,
                 //#if MC>=11400
-                MCVer.getMinecraft().gameRenderer.getCamera(),
+                //$$ MCVer.getMinecraft().gameRenderer.getActiveRenderInfo(),
                 //#else
-                //$$ MCVer.getMinecraft().getRenderViewEntity(),
+                MCVer.getMinecraft().getRenderViewEntity(),
                 //#endif
                 0
                 //#if MC<11500
-                //$$ , 1, 1, 0, 0, 0
+                , 1, 1, 0, 0, 0
                 //#endif
         );
         //#else
         //$$ particle.func_180434_a(builder, Minecraft.getMinecraft().getRenderViewEntity(), 0, 1, 1, 0, 0, 0);
         //#endif
-        builder.end();
+        builder.finishDrawing();
         return mesh;
     }
 
